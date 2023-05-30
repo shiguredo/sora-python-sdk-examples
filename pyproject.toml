@@ -1,0 +1,28 @@
+[project]
+name = "sora-python-sdk-samples"
+version = "0.1.0"
+description = "Add a short description here"
+authors = [
+    { name = "voluntas", email = "nakai@shiguredo.jp" }
+]
+dependencies = ["opencv-python~=4.7.0.72", "sounddevice~=0.4.6"]
+readme = "README.md"
+requires-python = ">= 3.8"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.rye]
+managed = true
+
+dev-dependencies = [
+    "opencv-python~=4.7.0.72",
+    "opencv-python-headless~=4.7.0.72",
+    "sounddevice~=0.4.6",
+    "mediapipe~=0.10.0",
+]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
