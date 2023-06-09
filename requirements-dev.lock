@@ -28,4 +28,5 @@ pycparser==2.21
 pyparsing==3.0.9
 python-dateutil==2.8.2
 six==1.16.0
+sora-sdk @ git+https://github.com/shiguredo/sora-python-sdk.git
 sounddevice==0.4.6

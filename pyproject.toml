@@ -5,7 +5,11 @@ description = "Add a short description here"
 authors = [
     { name = "voluntas", email = "nakai@shiguredo.jp" }
 ]
-dependencies = ["opencv-python~=4.7.0.72", "sounddevice~=0.4.6"]
+dependencies = [
+    "opencv-python~=4.7.0.72",
+    "sounddevice~=0.4.6",
+    "sora_sdk @ git+https://github.com/shiguredo/sora-python-sdk.git",
+]
 readme = "README.md"
 requires-python = ">= 3.8"
 

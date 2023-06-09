@@ -11,4 +11,5 @@ cffi==1.15.1
 numpy==1.24.3
 opencv-python==4.7.0.72
 pycparser==2.21
+sora-sdk @ git+https://github.com/shiguredo/sora-python-sdk.git
 sounddevice==0.4.6
