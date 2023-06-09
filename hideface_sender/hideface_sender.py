@@ -13,7 +13,7 @@ from sora_sdk import Sora
 
 
 class LogoStreamer:
-    def __init__(self, signaling_url, role, channel_id, client_id, metadata):
+    def __init__(self, signaling_url, role, channel_id, client_id, metadata,camera_id):
         self.mp_face_detection = mp.solutions.face_detection
 
         self.sora = Sora()
@@ -28,7 +28,7 @@ class LogoStreamer:
         )
         self.connection.on_disconnect = self.on_disconnect
 
-        self.video_capture = cv2.VideoCapture(0)
+        self.video_capture = cv2.VideoCapture(camera_id)
         self.running = True
         # ロゴを読み込む
         self.logo = Image.open(Path(__file__).parent.joinpath("shiguremaru.png"))
@@ -122,6 +122,7 @@ if __name__ == "__main__":
     # オプション引数
     parser.add_argument("--client_id", default='',  help="クライアントID")
     parser.add_argument("--metadata", help="メタデータ JSON")
+    parser.add_argument("--camera-id", type=int, default=0, help="cv2.VideoCapture() に渡すカメラ ID")
     args = parser.parse_args()
 
     metadata = None
@@ -134,5 +135,6 @@ if __name__ == "__main__":
         channel_id=args.channel_id,
         client_id=args.client_id,
         metadata=args.metadata,
+        camera_id=args.camera_id,
     )
     streamer.run()
