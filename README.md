@@ -10,6 +10,24 @@ Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use
 
 利用前に https://github.com/shiguredo/oss をお読みください。
 
+## サンプルコードの実行方法
+
+[Rye](https://github.com/mitsuhiko/rye) というパッケージマネージャーを利用しています。
+
+Linux と macOS の場合は `curl -sSf https://rye-up.com/get | bash` でインストール可能です。
+Windows は https://rye-up.com/ の Installation Instructions を確認してください。
+
+### 依存パッケージのビルド
+
+```console
+$ rye sync
+```
+
+### サンプルコードの実行
+
+```console
+$ rye run python recvonly/recvonly.py --signaling-url $YOUR_SIGNALING_URL --channel-id $YOUR_CHANNEL_ID
+```
 
 ## ライセンス
 
