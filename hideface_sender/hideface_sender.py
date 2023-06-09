@@ -1,3 +1,5 @@
+import argparse
+import json
 import math
 import signal
 from pathlib import Path
@@ -24,11 +26,15 @@ class LogoStreamer:
             metadata=metadata,
             video_source=self.video_source,
         )
+        self.connection.on_disconnect = self.on_disconnect
 
         self.video_capture = cv2.VideoCapture(0)
         self.running = True
         # ロゴを読み込む
         self.logo = Image.open(Path(__file__).parent.joinpath("shiguremaru.png"))
+
+    def on_disconnect(self, ec, message):
+        self.running = False
 
     def handler(self, signum, frame):
         self.running = False
@@ -107,11 +113,26 @@ class LogoStreamer:
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+
+    # 必須引数
+    parser.add_argument("--signaling-url", required=True, help="シグナリング URL")
+    parser.add_argument("--channel-id", required=True, help="チャネルID")
+
+    # オプション引数
+    parser.add_argument("--client_id", default='',  help="クライアントID")
+    parser.add_argument("--metadata", help="メタデータ JSON")
+    args = parser.parse_args()
+
+    metadata = None
+    if args.metadata:
+        metadata = json.loads(args.metadata)
+
     streamer = LogoStreamer(
-        signaling_url="signaling_url",
+        signaling_url=args.signaling_url,
         role="sendonly",
-        channel_id="channel_id",
-        client_id="sendonly",
-        metadata={"access_token": "access_token"},
+        channel_id=args.channel_id,
+        client_id=args.client_id,
+        metadata=args.metadata,
     )
     streamer.run()
