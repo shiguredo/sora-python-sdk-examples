@@ -1,5 +1,6 @@
 import argparse
 import json
+import os
 import signal
 
 import cv2
@@ -64,13 +65,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # 必須引数
-    parser.add_argument("--signaling-url", required=True, help="シグナリング URL")
-    parser.add_argument("--channel-id", required=True, help="チャネルID")
+    signaling_url = os.getenv("SIGNALING_URL")
+    parser.add_argument("--signaling-url", default=signaling_url, required=not signaling_url, help="シグナリング URL")
+    channel_id = os.getenv("CHANNEL_ID")
+    parser.add_argument("--channel-id", default=channel_id, required=not channel_id, help="チャネルID")
 
     # オプション引数
-    parser.add_argument("--client_id", default='',  help="クライアントID")
-    parser.add_argument("--metadata", help="メタデータ JSON")
-    parser.add_argument("--camera-id", type=int, default=0, help="cv2.VideoCapture() に渡すカメラ ID")
+    parser.add_argument("--client-id", default=os.getenv("CLIENT_ID", ""),  help="クライアントID")
+    parser.add_argument("--metadata", default=os.getenv("METADATA"), help="メタデータ JSON")
+    parser.add_argument("--camera-id", type=int, default=int(os.getenv("CAMERA_ID", "0")), help="cv2.VideoCapture() に渡すカメラ ID")
     args = parser.parse_args()
 
     metadata = None
@@ -78,5 +81,5 @@ if __name__ == '__main__':
         metadata = json.loads(args.metadata)
 
     sendonly = SendOnly(args.signaling_url, args.channel_id,
-                        args.client_id, args.metadata, args.camera_id)
+                        args.client_id, metadata, args.camera_id)
     sendonly.run()
