@@ -64,16 +64,17 @@ class SendOnly:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
+    # オプション引数の代わりに環境変数による指定も可能。
     # 必須引数
-    signaling_url = os.getenv("SIGNALING_URL")
-    parser.add_argument("--signaling-url", default=signaling_url, required=not signaling_url, help="シグナリング URL")
-    channel_id = os.getenv("CHANNEL_ID")
-    parser.add_argument("--channel-id", default=channel_id, required=not channel_id, help="チャネルID")
+    default_signaling_url = os.getenv("SORA_SIGNALING_URL")
+    parser.add_argument("--signaling-url", default=default_signaling_url, required=not default_signaling_url, help="シグナリング URL")
+    default_channel_id = os.getenv("SORA_CHANNEL_ID")
+    parser.add_argument("--channel-id", default=default_channel_id, required=not default_channel_id, help="チャネルID")
 
     # オプション引数
-    parser.add_argument("--client-id", default=os.getenv("CLIENT_ID", ""),  help="クライアントID")
-    parser.add_argument("--metadata", default=os.getenv("METADATA"), help="メタデータ JSON")
-    parser.add_argument("--camera-id", type=int, default=int(os.getenv("CAMERA_ID", "0")), help="cv2.VideoCapture() に渡すカメラ ID")
+    parser.add_argument("--client-id", default=os.getenv("SORA_CLIENT_ID", ""),  help="クライアントID")
+    parser.add_argument("--metadata", default=os.getenv("SORA_METADATA"), help="メタデータ JSON")
+    parser.add_argument("--camera-id", type=int, default=int(os.getenv("SORA_CAMERA_ID", "0")), help="cv2.VideoCapture() に渡すカメラ ID")
     args = parser.parse_args()
 
     metadata = None
