@@ -107,7 +107,7 @@ if __name__ == '__main__':
     parser.add_argument("--metadata", default=os.getenv("SORA_METADATA"), help="メタデータ JSON")
     args = parser.parse_args()
 
-    metadata = None
+    metadata = {}
     if args.metadata:
         metadata = json.loads(args.metadata)
 

@@ -77,7 +77,7 @@ if __name__ == '__main__':
     parser.add_argument("--camera-id", type=int, default=int(os.getenv("SORA_CAMERA_ID", "0")), help="cv2.VideoCapture() に渡すカメラ ID")
     args = parser.parse_args()
 
-    metadata = None
+    metadata = {}
     if args.metadata:
         metadata = json.loads(args.metadata)
 
