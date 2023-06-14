@@ -13,7 +13,7 @@ from sora_sdk import Sora
 
 
 class LogoStreamer:
-    def __init__(self, signaling_url, role, channel_id, client_id, metadata,camera_id):
+    def __init__(self, signaling_url, role, channel_id, client_id, metadata, camera_id):
         self.mp_face_detection = mp.solutions.face_detection
 
         self.sora = Sora()
@@ -31,7 +31,8 @@ class LogoStreamer:
         self.video_capture = cv2.VideoCapture(camera_id)
         self.running = True
         # ロゴを読み込む
-        self.logo = Image.open(Path(__file__).parent.joinpath("shiguremaru.png"))
+        self.logo = Image.open(
+            Path(__file__).parent.joinpath("shiguremaru.png"))
 
     def on_disconnect(self, ec, message):
         self.running = False
@@ -82,21 +83,27 @@ class LogoStreamer:
                         # 正規化されているので逆正規化を行う
                         w_px = math.floor(bb.width * frame_width)
                         h_px = math.floor(bb.height * frame_height)
-                        x_px = min(math.floor(bb.xmin * frame_width), frame_width - 1)
-                        y_px = min(math.floor(bb.ymin * frame_height), frame_height - 1)
+                        x_px = min(math.floor(
+                            bb.xmin * frame_width), frame_width - 1)
+                        y_px = min(math.floor(
+                            bb.ymin * frame_height), frame_height - 1)
 
                         # 検出領域は顔に対して小さいため、顔全体が覆われるように検出領域を大きくする
                         fixed_w_px = math.floor(w_px * 1.6)
                         fixed_h_px = math.floor(h_px * 1.6)
                         # 大きくした分、座標がずれてしまうため顔の中心になるように座標を補正する
-                        fixed_x_px = max(0, math.floor(x_px - (fixed_w_px - w_px) / 2))
+                        fixed_x_px = max(0, math.floor(
+                            x_px - (fixed_w_px - w_px) / 2))
                         # 検出領域は顔であり頭が入っていないため、上寄りになるように座標を補正する
-                        fixed_y_px = max(0, math.floor(y_px - (fixed_h_px - h_px)))
+                        fixed_y_px = max(0, math.floor(
+                            y_px - (fixed_h_px - h_px)))
 
                         # ロゴをリサイズする
-                        resized_logo = rotated_logo.resize((fixed_w_px, fixed_h_px))
+                        resized_logo = rotated_logo.resize(
+                            (fixed_w_px, fixed_h_px))
                         pil_image.paste(
-                            resized_logo, (fixed_x_px, fixed_y_px), resized_logo
+                            resized_logo, (fixed_x_px,
+                                           fixed_y_px), resized_logo
                         )
 
                 frame.flags.writeable = True
@@ -122,7 +129,8 @@ if __name__ == "__main__":
     # オプション引数
     parser.add_argument("--client_id", default='',  help="クライアントID")
     parser.add_argument("--metadata", help="メタデータ JSON")
-    parser.add_argument("--camera-id", type=int, default=0, help="cv2.VideoCapture() に渡すカメラ ID")
+    parser.add_argument("--camera-id", type=int, default=0,
+                        help="cv2.VideoCapture() に渡すカメラ ID")
     args = parser.parse_args()
 
     metadata = None

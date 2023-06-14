@@ -98,13 +98,17 @@ if __name__ == '__main__':
     # オプション引数の代わりに環境変数による指定も可能。
     # 必須引数
     default_signaling_url = os.getenv("SORA_SIGNALING_URL")
-    parser.add_argument("--signaling-url", default=default_signaling_url, required=not default_signaling_url, help="シグナリング URL")
+    parser.add_argument("--signaling-url", default=default_signaling_url,
+                        required=not default_signaling_url, help="シグナリング URL")
     default_channel_id = os.getenv("SORA_CHANNEL_ID")
-    parser.add_argument("--channel-id", default=default_channel_id, required=not default_channel_id, help="チャネルID")
+    parser.add_argument("--channel-id", default=default_channel_id,
+                        required=not default_channel_id, help="チャネルID")
 
     # オプション引数
-    parser.add_argument("--client-id", default=os.getenv("SORA_CLIENT_ID", ""),  help="クライアントID")
-    parser.add_argument("--metadata", default=os.getenv("SORA_METADATA"), help="メタデータ JSON")
+    parser.add_argument(
+        "--client-id", default=os.getenv("SORA_CLIENT_ID", ""),  help="クライアントID")
+    parser.add_argument(
+        "--metadata", default=os.getenv("SORA_METADATA"), help="メタデータ JSON")
     args = parser.parse_args()
 
     metadata = {}
