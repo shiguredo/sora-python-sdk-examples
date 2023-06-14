@@ -6,6 +6,7 @@
 # $ rye run python messaging_sendonly/messaging_sendonly.py --signaling-url ws://localhost:5000/signaling --channel-id sora --label '#foo' --data hello
 import argparse
 import json
+import os
 import time
 
 from sora_sdk import Sora
@@ -59,14 +60,24 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # 必須引数
-    parser.add_argument("--signaling-url", required=True, help="シグナリング URL")
-    parser.add_argument("--channel-id", required=True, help="チャネルID")
-    parser.add_argument("--label", required=True, help="送信するデータチャネルのラベル名")
-    parser.add_argument("--data", required=True, help="送信するデータ")
+    default_signaling_url = os.getenv("SORA_SIGNALING_URL")
+    parser.add_argument("--signaling-url", default=default_signaling_url,
+                        required=not default_signaling_url, help="シグナリング URL")
+    default_channel_id = os.getenv("SORA_CHANNEL_ID")
+    parser.add_argument("--channel-id", default=default_channel_id,
+                        required=not default_channel_id, help="チャネルID")
+    default_sendonly_label = os.getenv("SORA_SENDONLY_LABEL")
+    parser.add_argument("--label", default=default_sendonly_label,
+                        required=not default_sendonly_label, help="送信するデータチャネルのラベル名")
+    default_sendonly_data = os.getenv("SORA_SENDONLY_DATA")
+    parser.add_argument("--data", default=default_sendonly_data,
+                        required=not default_sendonly_data, help="送信するデータ")
 
     # オプション引数
-    parser.add_argument("--client-id", default='',  help="クライアントID")
-    parser.add_argument("--metadata", help="メタデータ JSON")
+    parser.add_argument(
+        "--client-id", default=os.getenv("SORA_CLIENT_ID", ""),  help="クライアントID")
+    parser.add_argument(
+        "--metadata", default=os.getenv("SORA_METADATA"), help="メタデータ JSON")
     args = parser.parse_args()
 
     metadata = None

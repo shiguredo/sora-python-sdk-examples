@@ -10,6 +10,7 @@
 # $ rye run python messaging_sendrecv/messaging_sendrecv.py --signaling-url ws://localhost:5000/signaling --channel-id sora --data-channels '[{"label": "#foo", "direction":"sendrecv"}, {"label":"#bar", "direction": "recvonly"}]'
 import argparse
 import json
+import os
 import random
 import time
 
@@ -81,15 +82,22 @@ class MessagingSendrecv:
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    # 必須引数
-    parser.add_argument("--signaling-url", required=True, help="シグナリング URL")
-    parser.add_argument("--channel-id", required=True, help="チャネルID")
-    parser.add_argument("--data-channels", required=True,
+    # 必須引数（環境変数からも指定可能）
+    default_signaling_url = os.getenv("SORA_SIGNALING_URL")
+    parser.add_argument("--signaling-url", default=default_signaling_url,
+                        required=not default_signaling_url, help="シグナリング URL")
+    default_channel_id = os.getenv("SORA_CHANNEL_ID")
+    parser.add_argument("--channel-id", default=default_channel_id,
+                        required=not default_channel_id, help="チャネルID")
+    default_ddata_channels = os.getenv("SORA_DATA_CHANNELS")
+    parser.add_argument("--data-channels", default=default_ddata_channels, required=not default_ddata_channels,
                         help="使用するデータチャネルを JSON で指定する (例: '[{\"label\": \"#spam\", \"direction\": \"sendrecv\"}]')")
 
     # オプション引数
-    parser.add_argument("--client-id", default='',  help="クライアントID")
-    parser.add_argument("--metadata", help="メタデータ JSON")
+    parser.add_argument(
+        "--client-id", default=os.getenv("SORA_CLIENT_ID", ""),  help="クライアントID")
+    parser.add_argument(
+        "--metadata", default=os.getenv("SORA_METADATA"), help="メタデータ JSON")
     args = parser.parse_args()
 
     metadata = None
