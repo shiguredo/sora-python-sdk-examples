@@ -2,7 +2,6 @@ import argparse
 import json
 import os
 import queue
-import signal
 
 import cv2
 import sounddevice
@@ -61,13 +60,7 @@ class Recvonly:
             else:
                 print("音声データを取得できません")
 
-    def exit_gracefully(self, signal_number, frame):
-        print("\nCtrl+Cが押されました。終了します")
-        self.shutdown = True
-
     def run(self):
-        # シグナルを登録し、プログラムが終了するときに正常に処理が行われるようにする
-        signal.signal(signal.SIGINT, self.exit_gracefully)
         # サウンドデバイスのOutputStreamを使って音声出力を設定
         with sounddevice.OutputStream(channels=self.output_channels, callback=self.callback,
                                       samplerate=self.output_frequency, dtype='int16'):
@@ -85,6 +78,8 @@ class Recvonly:
                     # これは削除してよさそう
                     if cv2.waitKey(1) & 0xFF == ord('q'):
                         break
+            except KeyboardInterrupt:
+                pass
             finally:
                 self.connection.disconnect()
 

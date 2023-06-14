@@ -1,7 +1,6 @@
 import argparse
 import json
 import os
-import signal
 
 import cv2
 import sounddevice
@@ -39,15 +38,10 @@ class SendOnly:
     def on_disconnect(self, ec, message):
         self.running = False
 
-    def handler(self, signum, frame):
-        self.running = False
-
     def callback(self, indata, frames, time, status):
         self.audio_source.on_data(indata)
 
     def run(self):
-        signal.signal(signal.SIGINT, self.handler)
-
         with sounddevice.InputStream(samplerate=self.samplerate, channels=self.channels,
                                      dtype='int16', callback=self.callback):
             self.connection.connect()
@@ -58,6 +52,8 @@ class SendOnly:
                     if not success:
                         continue
                     self.video_source.on_captured(frame)
+            except KeyboardInterrupt:
+                pass
             finally:
                 self.connection.disconnect()
                 self.video_capture.release()
