@@ -5,6 +5,7 @@ description = "Add a short description here"
 authors = [{ name = "voluntas", email = "nakai@shiguredo.jp" }]
 dependencies = [
     "opencv-python~=4.7.0.72",
+    "opencv-python-headless~=4.7.0.72",
     "sounddevice~=0.4.6",
     "sora_sdk~=2023.1.0.dev1",
 ]
@@ -19,10 +20,6 @@ build-backend = "hatchling.build"
 managed = true
 
 dev-dependencies = [
-    "opencv-python~=4.7.0.72",
-    "opencv-python-headless~=4.7.0.72",
-    "sounddevice~=0.4.6",
-    "mediapipe~=0.10.0",
     "autopep8~=2.0.2",
 ]
 
