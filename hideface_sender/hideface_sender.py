@@ -7,7 +7,6 @@ import cv2
 import mediapipe as mp
 import numpy as np
 from PIL import Image
-
 from sora_sdk import Sora
 
 
@@ -33,7 +32,8 @@ class LogoStreamer:
         self.logo = Image.open(
             Path(__file__).parent.joinpath("shiguremaru.png"))
 
-    def on_disconnect(self, ec, message):
+    def on_disconnect(self, error_code, message):
+        print(f"Sora から切断されました: error_code='{error_code}' message='{message}'")
         self.running = False
 
     def run(self):

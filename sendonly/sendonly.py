@@ -35,7 +35,8 @@ class SendOnly:
 
         self.video_capture = cv2.VideoCapture(camera_id)
 
-    def on_disconnect(self, ec, message):
+    def on_disconnect(self, error_code, message):
+        print(f"Sora から切断されました: error_code='{error_code}' message='{message}'")
         self.running = False
 
     def callback(self, indata, frames, time, status):

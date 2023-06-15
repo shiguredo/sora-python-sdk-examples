@@ -5,7 +5,6 @@ import queue
 
 import cv2
 import sounddevice
-
 from sora_sdk import Sora, SoraAudioSink, SoraVideoSink
 
 
@@ -35,8 +34,8 @@ class Recvonly:
 
         self.connection.on_track = self.on_track
 
-    def on_disconnect(self, ec, message):
-        print(f"Sora から切断されました: message='{message}'")
+    def on_disconnect(self, error_code, message):
+        print(f"Sora から切断されました: error_code='{error_code}' message='{message}'")
         self.shutdown = True
 
     def on_frame(self, frame):

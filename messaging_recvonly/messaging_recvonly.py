@@ -32,8 +32,8 @@ class MessagingRecvonly:
         self.connection.on_message = self.on_message
         self.connection.on_disconnect = self.on_disconnect
 
-    def on_disconnect(self, ec, message):
-        print(f"Sora から切断されました: message='{message}'")
+    def on_disconnect(self, error_code, message):
+        print(f"Sora から切断されました: error_code='{error_code}' message='{message}'")
         self.shutdown = True
 
     def on_message(self, label, data):

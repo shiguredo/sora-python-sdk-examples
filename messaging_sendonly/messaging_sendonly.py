@@ -33,8 +33,8 @@ class MessagingSendonly:
         self.connection.on_data_channel = self.on_data_channel
         self.connection.on_disconnect = self.on_disconnect
 
-    def on_disconnect(self, ec, message):
-        print(f"Sora から切断されました: message='{message}'")
+    def on_disconnect(self, error_code, message):
+        print(f"Sora から切断されました: error_code='{error_code}' message='{message}'")
         self.disconnected = True
 
     def on_data_channel(self, label):
