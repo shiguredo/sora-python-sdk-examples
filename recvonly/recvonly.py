@@ -10,13 +10,11 @@ from sora_sdk import Sora, SoraAudioSink, SoraVideoSink
 
 class Recvonly:
     def __init__(self, signaling_url, channel_id,
-                 metadata, use_hardware_encoder=False,
-                 output_frequency=16000, output_channels=1):
-        self.use_hardware_encoder = use_hardware_encoder
+                 metadata, output_frequency=16000, output_channels=1):
         self.output_frequency = output_frequency
         self.output_channels = output_channels
 
-        self.sora = Sora(self.use_hardware_encoder)
+        self.sora = Sora()
         self.connection = self.sora.create_connection(
             signaling_url=signaling_url,
             role="recvonly",

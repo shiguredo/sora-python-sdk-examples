@@ -10,13 +10,12 @@ from sora_sdk import Sora
 
 class SendOnly:
     def __init__(self, signaling_url, channel_id, metadata, camera_id, audio_codec_type, video_codec_type,
-                 video_width, video_height, use_hardware_encoder=False, channels=1, samplerate=16000):
+                 video_width, video_height, channels=1, samplerate=16000):
         self.running = True
         self.channels = channels
         self.samplerate = samplerate
-        self.use_hardware_encoder = use_hardware_encoder
 
-        self.sora = Sora(self.use_hardware_encoder)
+        self.sora = Sora()
         self.audio_source = self.sora.create_audio_source(
             self.channels, self.samplerate)
         self.video_source = self.sora.create_video_source()
