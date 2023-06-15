@@ -11,7 +11,7 @@ from sora_sdk import Sora
 
 
 class LogoStreamer:
-    def __init__(self, signaling_url, role, channel_id, client_id, metadata, camera_id):
+    def __init__(self, signaling_url, role, channel_id, client_id, metadata, camera_id, vidoe_width, video_height):
         self.mp_face_detection = mp.solutions.face_detection
 
         self.sora = Sora()
@@ -27,6 +27,11 @@ class LogoStreamer:
         self.connection.on_disconnect = self.on_disconnect
 
         self.video_capture = cv2.VideoCapture(camera_id)
+        if video_width is not None:
+            self.video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, video_width)
+        if video_height is not None:
+            self.video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, video_height)
+
         self.running = True
         # ロゴを読み込む
         self.logo = Image.open(
@@ -133,6 +138,10 @@ if __name__ == "__main__":
     parser.add_argument("--metadata", help="メタデータ JSON")
     parser.add_argument("--camera-id", type=int, default=0,
                         help="cv2.VideoCapture() に渡すカメラ ID")
+    parser.add_argument("--video-width", type=int, default=os.getenv("SORA_VIDEO_WIDTH"),
+                        help="入力カメラ映像の横幅のヒント")
+    parser.add_argument("--video-height", type=int, default=os.getenv("SORA_VIDEO_HEIGHT"),
+                        help="入力カメラ映像の高さのヒント")
     args = parser.parse_args()
 
     metadata = None

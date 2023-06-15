@@ -10,7 +10,7 @@ from sora_sdk import Sora
 
 class SendOnly:
     def __init__(self, signaling_url, channel_id, client_id, metadata, camera_id, audio_codec_type, video_codec_type,
-                 use_hardware_encoder=False, channels=1, samplerate=16000):
+                 video_width, video_height, use_hardware_encoder=False, channels=1, samplerate=16000):
         self.running = True
         self.channels = channels
         self.samplerate = samplerate
@@ -34,6 +34,10 @@ class SendOnly:
         self.connection.on_disconnect = self.on_disconnect
 
         self.video_capture = cv2.VideoCapture(camera_id)
+        if video_width is not None:
+            self.video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, video_width)
+        if video_height is not None:
+            self.video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, video_height)
 
     def on_disconnect(self, error_code, message):
         print(f"Sora から切断されました: error_code='{error_code}' message='{message}'")
@@ -83,6 +87,10 @@ if __name__ == '__main__':
         "--metadata", default=os.getenv("SORA_METADATA"), help="メタデータ JSON")
     parser.add_argument("--camera-id", type=int, default=int(
         os.getenv("SORA_CAMERA_ID", "0")), help="cv2.VideoCapture() に渡すカメラ ID")
+    parser.add_argument("--video-width", type=int, default=os.getenv("SORA_VIDEO_WIDTH"),
+                        help="入力カメラ映像の横幅のヒント")
+    parser.add_argument("--video-height", type=int, default=os.getenv("SORA_VIDEO_HEIGHT"),
+                        help="入力カメラ映像の高さのヒント")
     args = parser.parse_args()
 
     metadata = {}
@@ -90,5 +98,6 @@ if __name__ == '__main__':
         metadata = json.loads(args.metadata)
 
     sendonly = SendOnly(args.signaling_url, args.channel_id,
-                        args.client_id, metadata, args.camera_id, args.audio_codec_type, args.video_codec_type)
+                        args.client_id, metadata, args.camera_id, args.audio_codec_type, args.video_codec_type,
+                        args.video_width, args.video_height)
     sendonly.run()
