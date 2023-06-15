@@ -9,19 +9,16 @@ from sora_sdk import Sora, SoraAudioSink, SoraVideoSink
 
 
 class Recvonly:
-    def __init__(self, signaling_url, channel_id, client_id,
-                 metadata, use_hardware_encoder=False,
-                 output_frequency=16000, output_channels=1):
-        self.use_hardware_encoder = use_hardware_encoder
+    def __init__(self, signaling_url, channel_id,
+                 metadata, output_frequency=16000, output_channels=1):
         self.output_frequency = output_frequency
         self.output_channels = output_channels
 
-        self.sora = Sora(self.use_hardware_encoder)
+        self.sora = Sora()
         self.connection = self.sora.create_connection(
             signaling_url=signaling_url,
             role="recvonly",
             channel_id=channel_id,
-            client_id=client_id,
             metadata=metadata
         )
 
@@ -100,8 +97,6 @@ if __name__ == '__main__':
 
     # オプション引数
     parser.add_argument(
-        "--client-id", default=os.getenv("SORA_CLIENT_ID", ""),  help="クライアントID")
-    parser.add_argument(
         "--metadata", default=os.getenv("SORA_METADATA"), help="メタデータ JSON")
     args = parser.parse_args()
 
@@ -109,6 +104,5 @@ if __name__ == '__main__':
     if args.metadata:
         metadata = json.loads(args.metadata)
 
-    recvonly = Recvonly(args.signaling_url, args.channel_id,
-                        args.client_id, metadata)
+    recvonly = Recvonly(args.signaling_url, args.channel_id, metadata)
     recvonly.run()
