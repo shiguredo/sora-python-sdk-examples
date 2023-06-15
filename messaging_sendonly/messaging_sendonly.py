@@ -13,13 +13,12 @@ from sora_sdk import Sora
 
 
 class MessagingSendonly:
-    def __init__(self, signaling_url, channel_id, client_id, label, metadata):
+    def __init__(self, signaling_url, channel_id, label, metadata):
         self.sora = Sora()
         self.connection = self.sora.create_connection(
             signaling_url=signaling_url,
             role="sendrecv",
             channel_id=channel_id,
-            client_id=client_id,
             metadata=metadata,
             audio=False,
             video=False,
@@ -75,8 +74,6 @@ if __name__ == '__main__':
 
     # オプション引数
     parser.add_argument(
-        "--client-id", default=os.getenv("SORA_CLIENT_ID", ""),  help="クライアントID")
-    parser.add_argument(
         "--metadata", default=os.getenv("SORA_METADATA"), help="メタデータ JSON")
     args = parser.parse_args()
 
@@ -86,7 +83,6 @@ if __name__ == '__main__':
 
     messaging_sendonly = MessagingSendonly(args.signaling_url,
                                            args.channel_id,
-                                           args.client_id,
                                            args.label,
                                            metadata)
     messaging_sendonly.connect()

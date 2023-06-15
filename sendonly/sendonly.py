@@ -9,7 +9,7 @@ from sora_sdk import Sora
 
 
 class SendOnly:
-    def __init__(self, signaling_url, channel_id, client_id, metadata, camera_id, audio_codec_type, video_codec_type,
+    def __init__(self, signaling_url, channel_id, metadata, camera_id, audio_codec_type, video_codec_type,
                  video_width, video_height, use_hardware_encoder=False, channels=1, samplerate=16000):
         self.running = True
         self.channels = channels
@@ -24,7 +24,6 @@ class SendOnly:
             signaling_url=signaling_url,
             role="sendonly",
             channel_id=channel_id,
-            client_id=client_id,
             metadata=metadata,
             audio_codec_type=audio_codec_type,
             video_codec_type=video_codec_type,
@@ -82,8 +81,6 @@ if __name__ == '__main__':
     parser.add_argument(
         '--video-codec-type', default=os.getenv('SORA_VIDEO_CODEC_TYPE'), help="映像コーデックの種類")
     parser.add_argument(
-        "--client-id", default=os.getenv("SORA_CLIENT_ID", ""),  help="クライアントID")
-    parser.add_argument(
         "--metadata", default=os.getenv("SORA_METADATA"), help="メタデータ JSON")
     parser.add_argument("--camera-id", type=int, default=int(
         os.getenv("SORA_CAMERA_ID", "0")), help="cv2.VideoCapture() に渡すカメラ ID")
@@ -98,6 +95,6 @@ if __name__ == '__main__':
         metadata = json.loads(args.metadata)
 
     sendonly = SendOnly(args.signaling_url, args.channel_id,
-                        args.client_id, metadata, args.camera_id, args.audio_codec_type, args.video_codec_type,
+                        metadata, args.camera_id, args.audio_codec_type, args.video_codec_type,
                         args.video_width, args.video_height)
     sendonly.run()
