@@ -1,8 +1,8 @@
 [project]
 name = "sora-python-sdk-samples"
 version = "2023.1.0"
-description = "Add a short description here"
-authors = [{ name = "voluntas", email = "nakai@shiguredo.jp" }]
+description = "Sora Python SDK Samples"
+authors = [{ name = "Shiguredo Inc.", email = "contact+pypi@shiguredo.jp" }]
 dependencies = [
     "opencv-python~=4.7.0.72",
     "opencv-python-headless~=4.7.0.72",
