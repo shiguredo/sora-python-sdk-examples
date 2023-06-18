@@ -12,5 +12,5 @@ numpy==1.24.3
 opencv-python==4.7.0.72
 opencv-python-headless==4.7.0.72
 pycparser==2.21
-sora-sdk==2023.1.0.dev1
+sora-sdk==2023.1.0.dev6
 sounddevice==0.4.6
