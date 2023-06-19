@@ -4,13 +4,12 @@ import os
 
 import cv2
 import sounddevice
-
 from sora_sdk import Sora
 
 
 class SendOnly:
     def __init__(self, signaling_url, channel_id, metadata, camera_id, audio_codec_type, video_codec_type,
-                 video_width, video_height, channels=1, samplerate=16000):
+                 video_bit_rate, video_width, video_height, channels=1, samplerate=16000):
         self.running = True
         self.channels = channels
         self.samplerate = samplerate
@@ -26,6 +25,7 @@ class SendOnly:
             metadata=metadata,
             audio_codec_type=audio_codec_type,
             video_codec_type=video_codec_type,
+            video_bit_rate=video_bit_rate,
             audio_source=self.audio_source,
             video_source=self.video_source
         )
@@ -76,9 +76,11 @@ if __name__ == '__main__':
 
     # オプション引数
     parser.add_argument(
-        '--audio-codec-type', default=os.getenv('SORA_AUDIO_CODEC_TYPE'), help="音声コーデックの種類")
+        '--audio-codec-type', default=os.getenv('SORA_AUDIO_CODEC_TYPE'),help="音声コーデックの種類")
     parser.add_argument(
         '--video-codec-type', default=os.getenv('SORA_VIDEO_CODEC_TYPE'), help="映像コーデックの種類")
+    parser.add_argument(
+        '--video-bit-rate', type=int, default=int(os.getenv('SORA_VIDEO_BIT_RATE', "500")), help="映像ビットレート")
     parser.add_argument(
         "--metadata", default=os.getenv("SORA_METADATA"), help="メタデータ JSON")
     parser.add_argument("--camera-id", type=int, default=int(
@@ -94,6 +96,7 @@ if __name__ == '__main__':
         metadata = json.loads(args.metadata)
 
     sendonly = SendOnly(args.signaling_url, args.channel_id,
-                        metadata, args.camera_id, args.audio_codec_type, args.video_codec_type,
+                        metadata, args.camera_id, args.audio_codec_type,
+                        args.video_codec_type, args.video_bit_rate,
                         args.video_width, args.video_height)
     sendonly.run()
