@@ -98,7 +98,7 @@ if __name__ == '__main__':
     # オプション引数
     parser.add_argument(
         "--metadata", default=os.getenv("SORA_METADATA"), help="メタデータ JSON")
-    parser.add_argument("--openh264", type=str, default="",
+    parser.add_argument("--openh264", type=str, default=None,
                         help="OpenH264 の共有ライブラリへのパス")
     args = parser.parse_args()
 
