@@ -9,12 +9,12 @@ from sora_sdk import Sora
 
 class SendOnly:
     def __init__(self, signaling_url, channel_id, metadata, camera_id, audio_codec_type, video_codec_type,
-                 video_bit_rate, video_width, video_height, channels=1, samplerate=16000):
+                 video_bit_rate, video_width, video_height, openh264, channels=1, samplerate=16000):
         self.running = True
         self.channels = channels
         self.samplerate = samplerate
 
-        self.sora = Sora()
+        self.sora = Sora(openh264=openh264)
         self.audio_source = self.sora.create_audio_source(
             self.channels, self.samplerate)
         self.video_source = self.sora.create_video_source()
@@ -89,6 +89,8 @@ if __name__ == '__main__':
                         help="入力カメラ映像の横幅のヒント")
     parser.add_argument("--video-height", type=int, default=os.getenv("SORA_VIDEO_HEIGHT"),
                         help="入力カメラ映像の高さのヒント")
+    parser.add_argument("--openh264", type=str, default="",
+                        help="OpenH264 の共有ライブラリへのパス")
     args = parser.parse_args()
 
     metadata = {}
@@ -98,5 +100,5 @@ if __name__ == '__main__':
     sendonly = SendOnly(args.signaling_url, args.channel_id,
                         metadata, args.camera_id, args.audio_codec_type,
                         args.video_codec_type, args.video_bit_rate,
-                        args.video_width, args.video_height)
+                        args.video_width, args.video_height, args.openh264)
     sendonly.run()

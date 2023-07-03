@@ -10,11 +10,11 @@ from sora_sdk import Sora, SoraAudioSink, SoraVideoSink
 
 class Recvonly:
     def __init__(self, signaling_url, channel_id,
-                 metadata, output_frequency=16000, output_channels=1):
+                 metadata, openh264, output_frequency=16000, output_channels=1):
         self.output_frequency = output_frequency
         self.output_channels = output_channels
 
-        self.sora = Sora()
+        self.sora = Sora(openh264=openh264)
         self.connection = self.sora.create_connection(
             signaling_url=signaling_url,
             role="recvonly",
@@ -98,11 +98,13 @@ if __name__ == '__main__':
     # オプション引数
     parser.add_argument(
         "--metadata", default=os.getenv("SORA_METADATA"), help="メタデータ JSON")
+    parser.add_argument("--openh264", type=str, default="",
+                        help="OpenH264 の共有ライブラリへのパス")
     args = parser.parse_args()
 
     metadata = {}
     if args.metadata:
         metadata = json.loads(args.metadata)
 
-    recvonly = Recvonly(args.signaling_url, args.channel_id, metadata)
+    recvonly = Recvonly(args.signaling_url, args.channel_id, metadata, args.openh264)
     recvonly.run()
