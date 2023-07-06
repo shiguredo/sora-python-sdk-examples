@@ -11,13 +11,13 @@ from sora_sdk import Sora
 
 
 class LogoStreamer:
-    def __init__(self, signaling_url, role, channel_id, metadata, camera_id, vidoe_width, video_height):
+    def __init__(self, signaling_urls, role, channel_id, metadata, camera_id, vidoe_width, video_height):
         self.mp_face_detection = mp.solutions.face_detection
 
         self.sora = Sora()
         self.video_source = self.sora.create_video_source()
         self.connection = self.sora.create_connection(
-            signaling_url=signaling_url,
+            signaling_urls=signaling_urls,
             role=role,
             channel_id=channel_id,
             metadata=metadata,
@@ -129,7 +129,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # 必須引数
-    parser.add_argument("--signaling-url", required=True, help="シグナリング URL")
+    parser.add_argument("--signaling-urls", required=True, help="シグナリング URL")
     parser.add_argument("--channel-id", required=True, help="チャネルID")
 
     # オプション引数
@@ -147,7 +147,7 @@ if __name__ == "__main__":
         metadata = json.loads(args.metadata)
 
     streamer = LogoStreamer(
-        signaling_url=args.signaling_url,
+        signaling_urls=args.signaling_urls,
         role="sendonly",
         channel_id=args.channel_id,
         metadata=args.metadata,

@@ -8,7 +8,7 @@ from sora_sdk import Sora
 
 
 class SendOnly:
-    def __init__(self, signaling_url, channel_id, metadata, camera_id, audio_codec_type, video_codec_type,
+    def __init__(self, signaling_urls, channel_id, metadata, camera_id, audio_codec_type, video_codec_type,
                  video_bit_rate, video_width, video_height, openh264, channels=1, samplerate=16000):
         self.running = True
         self.channels = channels
@@ -19,7 +19,7 @@ class SendOnly:
             self.channels, self.samplerate)
         self.video_source = self.sora.create_video_source()
         self.connection = self.sora.create_connection(
-            signaling_url=signaling_url,
+            signaling_urls=signaling_urls,
             role="sendonly",
             channel_id=channel_id,
             metadata=metadata,
@@ -67,9 +67,10 @@ if __name__ == '__main__':
 
     # オプション引数の代わりに環境変数による指定も可能。
     # 必須引数
-    default_signaling_url = os.getenv("SORA_SIGNALING_URL")
-    parser.add_argument("--signaling-url", default=default_signaling_url,
-                        required=not default_signaling_url, help="シグナリング URL")
+    default_signaling_urls = os.getenv("SORA_SIGNALING_URLS")
+    parser.add_argument("--signaling-urls", default=default_signaling_urls,
+                        type=str,
+                        required=not default_signaling_urls, help="シグナリング URL")
     default_channel_id = os.getenv("SORA_CHANNEL_ID")
     parser.add_argument("--channel-id", default=default_channel_id,
                         required=not default_channel_id, help="チャネルID")
@@ -97,7 +98,7 @@ if __name__ == '__main__':
     if args.metadata:
         metadata = json.loads(args.metadata)
 
-    sendonly = SendOnly(args.signaling_url, args.channel_id,
+    sendonly = SendOnly(args.signaling_urls, args.channel_id,
                         metadata, args.camera_id, args.audio_codec_type,
                         args.video_codec_type, args.video_bit_rate,
                         args.video_width, args.video_height, args.openh264)

@@ -9,14 +9,14 @@ from sora_sdk import Sora, SoraAudioSink, SoraVideoSink
 
 
 class Recvonly:
-    def __init__(self, signaling_url, channel_id,
+    def __init__(self, signaling_urls, channel_id,
                  metadata, openh264, output_frequency=16000, output_channels=1):
         self.output_frequency = output_frequency
         self.output_channels = output_channels
 
         self.sora = Sora(openh264=openh264)
         self.connection = self.sora.create_connection(
-            signaling_url=signaling_url,
+            signaling_urls=signaling_urls,
             role="recvonly",
             channel_id=channel_id,
             metadata=metadata
@@ -88,9 +88,9 @@ if __name__ == '__main__':
 
     # オプション引数の代わりに環境変数による指定も可能。
     # 必須引数
-    default_signaling_url = os.getenv("SORA_SIGNALING_URL")
-    parser.add_argument("--signaling-url", default=default_signaling_url,
-                        required=not default_signaling_url, help="シグナリング URL")
+    default_signaling_urls = os.getenv("SORA_SIGNALING_URLS")
+    parser.add_argument("--signaling-urls", default=default_signaling_urls,
+                        required=not default_signaling_urls, help="シグナリング URL")
     default_channel_id = os.getenv("SORA_CHANNEL_ID")
     parser.add_argument("--channel-id", default=default_channel_id,
                         required=not default_channel_id, help="チャネルID")
@@ -106,5 +106,5 @@ if __name__ == '__main__':
     if args.metadata:
         metadata = json.loads(args.metadata)
 
-    recvonly = Recvonly(args.signaling_url, args.channel_id, metadata, args.openh264)
+    recvonly = Recvonly(args.signaling_urls, args.channel_id, metadata, args.openh264)
     recvonly.run()

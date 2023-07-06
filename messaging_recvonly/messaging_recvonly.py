@@ -3,7 +3,7 @@
 # コマンドライン引数で指定されたチャネルおよびラベルに届いたメッセージを標準出力に表示する。
 #
 # 実行例:
-# $ rye run python messaging_recvonly/messaging_recvonly.py --signaling-url ws://localhost:5000/signaling --channel-id sora --labels '#foo' '#bar'
+# $ rye run python messaging_recvonly/messaging_recvonly.py --signaling-urls ws://localhost:5000/signaling --channel-id sora --labels '#foo' '#bar'
 import argparse
 import json
 import os
@@ -13,10 +13,10 @@ from sora_sdk import Sora
 
 
 class MessagingRecvonly:
-    def __init__(self, signaling_url, channel_id, labels, metadata):
+    def __init__(self, signaling_urlssssss, channel_id, labels, metadata):
         self.sora = Sora()
         self.connection = self.sora.create_connection(
-            signaling_url=signaling_url,
+            signaling_urls=signaling_urls,
             role="sendrecv",
             channel_id=channel_id,
             metadata=metadata,
@@ -56,9 +56,9 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # 必須引数（環境変数からも指定可能）
-    default_signaling_url = os.getenv("SORA_SIGNALING_URL")
-    parser.add_argument("--signaling-url", default=default_signaling_url,
-                        required=not default_signaling_url, help="シグナリング URL")
+    default_signaling_urls = os.getenv("SORA_SIGNALING_URLS")
+    parser.add_argument("--signaling-urls", default=default_signaling_urls,
+                        required=not default_signaling_urls, help="シグナリング URL")
     default_channel_id = os.getenv("SORA_CHANNEL_ID")
     parser.add_argument("--channel-id", default=default_channel_id,
                         required=not default_channel_id, help="チャネルID")
@@ -76,7 +76,7 @@ if __name__ == '__main__':
     if args.metadata:
         metadata = json.loads(args.metadata)
 
-    messaging_recvonly = MessagingRecvonly(args.signaling_url,
+    messaging_recvonly = MessagingRecvonly(args.signaling_urls,
                                            args.channel_id,
                                            args.labels,
                                            metadata)
