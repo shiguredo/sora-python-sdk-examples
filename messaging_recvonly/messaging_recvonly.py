@@ -3,7 +3,7 @@
 # コマンドライン引数で指定されたチャネルおよびラベルに届いたメッセージを標準出力に表示する。
 #
 # 実行例:
-# $ rye run python messaging_recvonly/messaging_recvonly.py --signaling-urls ws://localhost:5000/signaling --channel-id sora --labels '#foo' '#bar'
+# $ rye run python messaging_recvonly/messaging_recvonly.py --signaling-urls wss://example.com/signaling --channel-id sora --labels '#foo' '#bar'
 import argparse
 import json
 import os

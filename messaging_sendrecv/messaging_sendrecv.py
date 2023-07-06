@@ -7,7 +7,7 @@
 # - `direction` が `sendonly` または `sendrecv` のデータチャネルに対して、1 秒ごとに自動生成したメッセージを送信する
 #
 # 実行例:
-# $ rye run python messaging_sendrecv/messaging_sendrecv.py --signaling-urls ws://localhost:5000/signaling --channel-id sora --data-channels '[{"label": "#foo", "direction":"sendrecv"}, {"label":"#bar", "direction": "recvonly"}]'
+# $ rye run python messaging_sendrecv/messaging_sendrecv.py --signaling-urls wss://sora.example.com/signaling --channel-id sora --data-channels '[{"label": "#foo", "direction":"sendrecv"}, {"label":"#bar", "direction": "recvonly"}]'
 import argparse
 import json
 import os
@@ -90,7 +90,8 @@ if __name__ == '__main__':
     parser.add_argument("--channel-id", default=default_channel_id,
                         required=not default_channel_id, help="チャネルID")
     default_ddata_channels = os.getenv("SORA_DATA_CHANNELS")
-    parser.add_argument("--data-channels", default=default_ddata_channels, required=not default_ddata_channels,
+    parser.add_argument("--data-channels", default=default_ddata_channels,
+                        required=not default_ddata_channels,
                         help="使用するデータチャネルを JSON で指定する (例: '[{\"label\": \"#spam\", \"direction\": \"sendrecv\"}]')")
 
     # オプション引数

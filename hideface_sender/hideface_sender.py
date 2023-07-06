@@ -12,7 +12,8 @@ from sora_sdk import Sora
 
 
 class LogoStreamer:
-    def __init__(self, signaling_urls, role, channel_id, metadata, camera_id, video_width, video_height):
+    def __init__(self, signaling_urls, role, channel_id, metadata, camera_id,
+                 video_width, video_height):
         self.mp_face_detection = mp.solutions.face_detection
 
         self.sora = Sora()
