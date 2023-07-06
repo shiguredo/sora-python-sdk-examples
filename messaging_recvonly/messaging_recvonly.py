@@ -13,7 +13,7 @@ from sora_sdk import Sora
 
 
 class MessagingRecvonly:
-    def __init__(self, signaling_urlssssss, channel_id, labels, metadata):
+    def __init__(self, signaling_urls, channel_id, labels, metadata):
         self.sora = Sora()
         self.connection = self.sora.create_connection(
             signaling_urls=signaling_urls,
@@ -58,6 +58,7 @@ if __name__ == '__main__':
     # 必須引数（環境変数からも指定可能）
     default_signaling_urls = os.getenv("SORA_SIGNALING_URLS")
     parser.add_argument("--signaling-urls", default=default_signaling_urls,
+                        type=str, nargs='+',
                         required=not default_signaling_urls, help="シグナリング URL")
     default_channel_id = os.getenv("SORA_CHANNEL_ID")
     parser.add_argument("--channel-id", default=default_channel_id,

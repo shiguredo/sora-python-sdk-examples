@@ -90,6 +90,7 @@ if __name__ == '__main__':
     # 必須引数
     default_signaling_urls = os.getenv("SORA_SIGNALING_URLS")
     parser.add_argument("--signaling-urls", default=default_signaling_urls,
+                        type=str, nargs='+',
                         required=not default_signaling_urls, help="シグナリング URL")
     default_channel_id = os.getenv("SORA_CHANNEL_ID")
     parser.add_argument("--channel-id", default=default_channel_id,

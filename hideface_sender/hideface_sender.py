@@ -1,6 +1,7 @@
 import argparse
 import json
 import math
+import os
 from pathlib import Path
 
 import cv2
@@ -129,8 +130,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # 必須引数
-    parser.add_argument("--signaling-urls", required=True, help="シグナリング URL")
-    parser.add_argument("--channel-id", required=True, help="チャネルID")
+    default_signaling_urls = os.getenv("SORA_SIGNALING_URLS")
+    parser.add_argument("--signaling-urls", default=default_signaling_urls,
+                        type=str, nargs='+',
+                        required=not default_signaling_urls, help="シグナリング URL")
+    default_channel_id = os.getenv("SORA_CHANNEL_ID")
+    parser.add_argument("--channel-id", default=default_channel_id,
+                        required=not default_channel_id, help="チャネルID")
 
     # オプション引数
     parser.add_argument("--metadata", help="メタデータ JSON")
