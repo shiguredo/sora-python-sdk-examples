@@ -77,7 +77,7 @@ if __name__ == '__main__':
 
     # オプション引数
     parser.add_argument(
-        '--audio-codec-type', default=os.getenv('SORA_AUDIO_CODEC_TYPE'),help="音声コーデックの種類")
+        '--audio-codec-type', default=os.getenv('SORA_AUDIO_CODEC_TYPE'), help="音声コーデックの種類")
     parser.add_argument(
         '--video-codec-type', default=os.getenv('SORA_VIDEO_CODEC_TYPE'), help="映像コーデックの種類")
     parser.add_argument(

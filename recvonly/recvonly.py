@@ -107,5 +107,6 @@ if __name__ == '__main__':
     if args.metadata:
         metadata = json.loads(args.metadata)
 
-    recvonly = Recvonly(args.signaling_urls, args.channel_id, metadata, args.openh264)
+    recvonly = Recvonly(args.signaling_urls,
+                        args.channel_id, metadata, args.openh264)
     recvonly.run()
