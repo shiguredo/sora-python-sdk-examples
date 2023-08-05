@@ -159,5 +159,7 @@ if __name__ == "__main__":
         channel_id=args.channel_id,
         metadata=args.metadata,
         camera_id=args.camera_id,
+        video_height=args.video_height,
+        video_width=args.video_width,
     )
     streamer.run()
