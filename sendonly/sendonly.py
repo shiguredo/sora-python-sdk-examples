@@ -90,7 +90,7 @@ if __name__ == '__main__':
                         help="入力カメラ映像の横幅のヒント")
     parser.add_argument("--video-height", type=int, default=os.getenv("SORA_VIDEO_HEIGHT"),
                         help="入力カメラ映像の高さのヒント")
-    parser.add_argument("--openh264", type=str, default="",
+    parser.add_argument("--openh264", type=str, default=None,
                         help="OpenH264 の共有ライブラリへのパス")
     args = parser.parse_args()
 
