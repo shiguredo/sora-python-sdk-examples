@@ -11,7 +11,7 @@
     "schedule:weekly"
   ],
   "ignorePaths": [
-    "**/.python-version"
+    ".python-version"
   ],
   "dependencyDashboard": false
 }
