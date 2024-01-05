@@ -5,7 +5,7 @@ description = "Sora Python SDK Samples"
 authors = [{ name = "Shiguredo Inc.", email = "contact+pypi@shiguredo.jp" }]
 dependencies = [
     "opencv-python~=4.9.0.80",
-    "opencv-python-headless~=4.8.0.74",
+    "opencv-python-headless~=4.9.0.80",
     "sounddevice~=0.4.6",
     "sora_sdk>=2023.3.1",
     "mediapipe~=0.10.1",
