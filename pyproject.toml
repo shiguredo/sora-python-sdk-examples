@@ -25,6 +25,8 @@ dev-dependencies = ["autopep8~=2.0.2"]
 [tool.hatch.metadata]
 allow-direct-references = true
 
+[tool.hatch.build.targets.wheel]
+packages = ["source"]
 
 [tool.autopep8]
 max_line_length = 120
