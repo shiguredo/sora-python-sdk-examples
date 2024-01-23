@@ -12,8 +12,16 @@ from sora_sdk import Sora
 
 
 class LogoStreamer:
-    def __init__(self, signaling_urls, role, channel_id, metadata, camera_id,
-                 video_width, video_height):
+    def __init__(
+        self,
+        signaling_urls,
+        role,
+        channel_id,
+        metadata,
+        camera_id,
+        video_width,
+        video_height,
+    ):
         self.mp_face_detection = mp.solutions.face_detection
 
         self.sora = Sora()
@@ -35,8 +43,7 @@ class LogoStreamer:
 
         self.running = True
         # ロゴを読み込む
-        self.logo = Image.open(
-            Path(__file__).parent.joinpath("shiguremaru.png"))
+        self.logo = Image.open(Path(__file__).parent.joinpath("shiguremaru.png"))
 
     def on_disconnect(self, error_code, message):
         print(f"Sora から切断されました: error_code='{error_code}' message='{message}'")
@@ -47,7 +54,7 @@ class LogoStreamer:
         try:
             # 顔検出を用意する
             with self.mp_face_detection.FaceDetection(
-                    model_selection=0, min_detection_confidence=0.5
+                model_selection=0, min_detection_confidence=0.5
             ) as face_detection:
                 angle = 0
                 while self.running and self.video_capture.isOpened():
@@ -92,28 +99,20 @@ class LogoStreamer:
                     # 正規化されているので逆正規化を行う
                     w_px = math.floor(bb.width * frame_width)
                     h_px = math.floor(bb.height * frame_height)
-                    x_px = min(math.floor(
-                        bb.xmin * frame_width), frame_width - 1)
-                    y_px = min(math.floor(
-                        bb.ymin * frame_height), frame_height - 1)
+                    x_px = min(math.floor(bb.xmin * frame_width), frame_width - 1)
+                    y_px = min(math.floor(bb.ymin * frame_height), frame_height - 1)
 
                     # 検出領域は顔に対して小さいため、顔全体が覆われるように検出領域を大きくする
                     fixed_w_px = math.floor(w_px * 1.6)
                     fixed_h_px = math.floor(h_px * 1.6)
                     # 大きくした分、座標がずれてしまうため顔の中心になるように座標を補正する
-                    fixed_x_px = max(0, math.floor(
-                        x_px - (fixed_w_px - w_px) / 2))
+                    fixed_x_px = max(0, math.floor(x_px - (fixed_w_px - w_px) / 2))
                     # 検出領域は顔であり頭が入っていないため、上寄りになるように座標を補正する
-                    fixed_y_px = max(0, math.floor(
-                        y_px - (fixed_h_px - h_px)))
+                    fixed_y_px = max(0, math.floor(y_px - (fixed_h_px - h_px)))
 
                     # ロゴをリサイズする
-                    resized_logo = rotated_logo.resize(
-                        (fixed_w_px, fixed_h_px))
-                    pil_image.paste(
-                        resized_logo, (fixed_x_px,
-                                       fixed_y_px), resized_logo
-                    )
+                    resized_logo = rotated_logo.resize((fixed_w_px, fixed_h_px))
+                    pil_image.paste(resized_logo, (fixed_x_px, fixed_y_px), resized_logo)
 
             frame.flags.writeable = True
             # PIL から numpy に画像を戻す
@@ -132,21 +131,39 @@ if __name__ == "__main__":
 
     # 必須引数
     default_signaling_urls = os.getenv("SORA_SIGNALING_URLS")
-    parser.add_argument("--signaling-urls", default=default_signaling_urls,
-                        type=str, nargs='+',
-                        required=not default_signaling_urls, help="シグナリング URL")
+    parser.add_argument(
+        "--signaling-urls",
+        default=default_signaling_urls,
+        type=str,
+        nargs="+",
+        required=not default_signaling_urls,
+        help="シグナリング URL",
+    )
     default_channel_id = os.getenv("SORA_CHANNEL_ID")
-    parser.add_argument("--channel-id", default=default_channel_id,
-                        required=not default_channel_id, help="チャネルID")
+    parser.add_argument(
+        "--channel-id",
+        default=default_channel_id,
+        required=not default_channel_id,
+        help="チャネルID",
+    )
 
     # オプション引数
     parser.add_argument("--metadata", help="メタデータ JSON")
-    parser.add_argument("--camera-id", type=int, default=0,
-                        help="cv2.VideoCapture() に渡すカメラ ID")
-    parser.add_argument("--video-width", type=int, default=os.getenv("SORA_VIDEO_WIDTH"),
-                        help="入力カメラ映像の横幅のヒント")
-    parser.add_argument("--video-height", type=int, default=os.getenv("SORA_VIDEO_HEIGHT"),
-                        help="入力カメラ映像の高さのヒント")
+    parser.add_argument(
+        "--camera-id", type=int, default=0, help="cv2.VideoCapture() に渡すカメラ ID"
+    )
+    parser.add_argument(
+        "--video-width",
+        type=int,
+        default=os.getenv("SORA_VIDEO_WIDTH"),
+        help="入力カメラ映像の横幅のヒント",
+    )
+    parser.add_argument(
+        "--video-height",
+        type=int,
+        default=os.getenv("SORA_VIDEO_HEIGHT"),
+        help="入力カメラ映像の高さのヒント",
+    )
     args = parser.parse_args()
 
     metadata = None

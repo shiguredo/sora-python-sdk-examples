@@ -64,8 +64,7 @@ class MessagingSendrecv:
             while not self.shutdown:
                 if i % 100 == 0:
                     for label in self.sendable_data_channels:
-                        data = f"sender={self.sender_id}, no={i // 100}".encode(
-                            "utf-8")
+                        data = f"sender={self.sender_id}, no={i // 100}".encode("utf-8")
                         self.connection.send_data_channel(label, data)
                         print(f"メッセージを送信しました: label={label}, data={data}")
 
@@ -78,33 +77,43 @@ class MessagingSendrecv:
             self.connection.disconnect()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # 必須引数（環境変数からも指定可能）
     default_signaling_urls = os.getenv("SORA_SIGNALING_URLS")
-    parser.add_argument("--signaling-urls", default=default_signaling_urls,
-                        type=str, nargs='+',
-                        required=not default_signaling_urls, help="シグナリング URL")
+    parser.add_argument(
+        "--signaling-urls",
+        default=default_signaling_urls,
+        type=str,
+        nargs="+",
+        required=not default_signaling_urls,
+        help="シグナリング URL",
+    )
     default_channel_id = os.getenv("SORA_CHANNEL_ID")
-    parser.add_argument("--channel-id", default=default_channel_id,
-                        required=not default_channel_id, help="チャネルID")
+    parser.add_argument(
+        "--channel-id",
+        default=default_channel_id,
+        required=not default_channel_id,
+        help="チャネルID",
+    )
     default_ddata_channels = os.getenv("SORA_DATA_CHANNELS")
-    parser.add_argument("--data-channels", default=default_ddata_channels,
-                        required=not default_ddata_channels,
-                        help="使用するデータチャネルを JSON で指定する (例: '[{\"label\": \"#spam\", \"direction\": \"sendrecv\"}]')")
+    parser.add_argument(
+        "--data-channels",
+        default=default_ddata_channels,
+        required=not default_ddata_channels,
+        help='使用するデータチャネルを JSON で指定する (例: \'[{"label": "#spam", "direction": "sendrecv"}]\')',
+    )
 
     # オプション引数
-    parser.add_argument(
-        "--metadata", default=os.getenv("SORA_METADATA"), help="メタデータ JSON")
+    parser.add_argument("--metadata", default=os.getenv("SORA_METADATA"), help="メタデータ JSON")
     args = parser.parse_args()
 
     metadata = None
     if args.metadata:
         metadata = json.loads(args.metadata)
 
-    messaging_sendrecv = MessagingSendrecv(args.signaling_urls,
-                                           args.channel_id,
-                                           json.loads(args.data_channels),
-                                           metadata)
+    messaging_sendrecv = MessagingSendrecv(
+        args.signaling_urls, args.channel_id, json.loads(args.data_channels), metadata
+    )
     messaging_sendrecv.run()

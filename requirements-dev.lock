@@ -5,6 +5,7 @@
 #   pre: false
 #   features: []
 #   all-features: false
+#   with-sources: false
 
 -e file:.
 absl-py==1.4.0
@@ -21,8 +22,8 @@ matplotlib==3.7.2
 mediapipe==0.10.1
 numpy==1.24.4
 opencv-contrib-python==4.8.0.74
-opencv-python==4.8.0.74
-opencv-python-headless==4.8.0.74
+opencv-python==4.9.0.80
+opencv-python-headless==4.9.0.80
 packaging==23.1
 pillow==10.0.0
 protobuf==3.20.3
@@ -30,6 +31,7 @@ pycodestyle==2.10.0
 pycparser==2.21
 pyparsing==3.0.9
 python-dateutil==2.8.2
+ruff==0.1.14
 six==1.16.0
 sora-sdk==2023.3.1
 sounddevice==0.4.6
