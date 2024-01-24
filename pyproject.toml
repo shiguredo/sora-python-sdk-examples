@@ -28,6 +28,7 @@ dev-dependencies = [
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
+# XXX: source ではない気がする
 packages = ["source"]
 
 [tool.ruff]
