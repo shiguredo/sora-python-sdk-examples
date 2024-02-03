@@ -1,13 +1,28 @@
 import argparse
 import json
 import os
+from threading import Event
+from typing import Any, Dict
 
 import cv2
 import sounddevice
-from sora_sdk import Sora
+from sora_sdk import AudioSource, Sora, SoraConnection, VideoSource
 
 
 class SendOnly:
+    _sora: Sora
+    _connection: SoraConnection
+
+    _connection_id: str
+
+    _connected: Event()
+    _closed: bool = False
+
+    _audio_source: AudioSource
+    _video_source: VideoSource
+
+    _video_capture: cv2.VideoCapture
+
     def __init__(
         self,
         signaling_urls,
@@ -23,14 +38,16 @@ class SendOnly:
         channels=1,
         samplerate=16000,
     ):
-        self.running = True
+        # FIXME: audio_channels / audio_sample_rate にする
         self.channels = channels
         self.samplerate = samplerate
 
-        self.sora = Sora(openh264=openh264)
-        self.audio_source = self.sora.create_audio_source(self.channels, self.samplerate)
-        self.video_source = self.sora.create_video_source()
-        self.connection = self.sora.create_connection(
+        self._sora = Sora(openh264=openh264)
+
+        self._audio_source = self._sora.create_audio_source(self.channels, self.samplerate)
+        self._video_source = self._sora.create_video_source()
+
+        self._connection = self._sora.create_connection(
             signaling_urls=signaling_urls,
             role="sendonly",
             channel_id=channel_id,
@@ -38,44 +55,73 @@ class SendOnly:
             audio_codec_type=audio_codec_type,
             video_codec_type=video_codec_type,
             video_bit_rate=video_bit_rate,
-            audio_source=self.audio_source,
-            video_source=self.video_source,
+            audio_source=self._audio_source,
+            video_source=self._video_source,
         )
-        self.connection.on_disconnect = self.on_disconnect
 
-        self.video_capture = cv2.VideoCapture(camera_id)
+        self._connection.on_set_offer = self._on_set_offer
+        self._connection.on_notify = self._on_notify
+        self._connection.on_disconnect = self._on_disconnect
+
+        self._video_capture = cv2.VideoCapture(camera_id)
         if video_width is not None:
-            self.video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, video_width)
+            self._video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, video_width)
         if video_height is not None:
-            self.video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, video_height)
+            self._video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, video_height)
 
-    def on_disconnect(self, error_code, message):
+    def connect(self):
+        self._connection.connect()
+
+        # XXX: マジックナンバーを使っているので修正する
+        assert self._connected.wait(timeout=10), "接続がタイムアウトしました"
+
+    def disconnect(self):
+        self._connection.disconnect()
+
+    def _on_notify(self, raw_message: str):
+        message: Dict[str, Any] = json.loads(raw_message)
+        # 自分の connection_id の connection.created が通知されたら接続完了フラグを立てる
+        if (
+            message["type"] == "notify"
+            and message["event_type"] == "connection.created"
+            and message["connection_id"] == self._connection_id
+        ):
+            self._connected.set()
+
+    def _on_set_offer(self, raw_message: str):
+        message: Dict[str, Any] = json.loads(raw_message)
+        # 自分の connection_id を保存する
+        if message["type"] == "offer":
+            self._connection_id = message["connection_id"]
+
+    def _on_disconnect(self, error_code, message):
         print(f"Sora から切断されました: error_code='{error_code}' message='{message}'")
-        self.running = False
+        self._closed = True
+        self._connected.clear()
 
-    def callback(self, indata, frames, time, status):
-        self.audio_source.on_data(indata)
+    def _callback(self, indata, frames, time, status):
+        self._audio_source.on_data(indata)
 
     def run(self):
         with sounddevice.InputStream(
             samplerate=self.samplerate,
             channels=self.channels,
             dtype="int16",
-            callback=self.callback,
+            callback=self._callback,
         ):
-            self.connection.connect()
+            self.connect()
 
             try:
-                while self.running:
-                    success, frame = self.video_capture.read()
+                while self._connected:
+                    success, frame = self._video_capture.read()
                     if not success:
                         continue
-                    self.video_source.on_captured(frame)
+                    self._video_source.on_captured(frame)
             except KeyboardInterrupt:
                 pass
             finally:
-                self.connection.disconnect()
-                self.video_capture.release()
+                self.disconnect()
+                self._video_capture.release()
 
 
 if __name__ == "__main__":

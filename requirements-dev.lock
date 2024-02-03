@@ -29,7 +29,7 @@ protobuf==3.20.3
 pycparser==2.21
 pyparsing==3.0.9
 python-dateutil==2.8.2
-ruff==0.1.14
+ruff==0.2.0
 six==1.16.0
 sora-sdk==2024.1.0
 sounddevice==0.4.6
