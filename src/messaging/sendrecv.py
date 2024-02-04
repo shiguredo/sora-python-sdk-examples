@@ -7,21 +7,21 @@
 # - `direction` が `sendonly` または `sendrecv` のデータチャネルに対して、1 秒ごとに自動生成したメッセージを送信する
 #
 # 実行例:
-# $ rye run python messaging_sendrecv/messaging_sendrecv.py --signaling-urls wss://sora.example.com/signaling --channel-id sora --data-channels '[{"label": "#foo", "direction":"sendrecv"}, {"label":"#bar", "direction": "recvonly"}]'
+# $ rye run python src/messaging_sendrecv.py --signaling-urls wss://sora.example.com/signaling --channel-id sora --data-channels '[{"label": "#foo", "direction":"sendrecv"}, {"label":"#bar", "direction": "recvonly"}]'
 import argparse
 import json
 import os
 import random
 import time
 from threading import Event
-from typing import Any, Dict
+from typing import Any, Dict, List
 
-from sora_sdk import Sora, SoraSignalingErrorCode
+from sora_sdk import Sora, SoraConnection, SoraSignalingErrorCode
 
 
 class MessagingSendrecv:
     _sora: Sora
-    _connection: Sora.Connection
+    _connection: SoraConnection
 
     _connection_id: str
 
@@ -29,17 +29,18 @@ class MessagingSendrecv:
     _closed: bool = False
 
     _data_channels: [Dict[str, Any]]
-    _sendable_data_channels: Event
+    _sendable_data_channels: set = set()
 
     def __init__(
         self,
-        signaling_urls: list(str),
+        # python 3.8 まで対応なので list[str] ではなく List[str] にする
+        signaling_urls: List[str],
         channel_id: str,
         data_channels: [Dict[str, Any]],
         metadata: Dict[str, Any],
     ):
-        self.sora = Sora()
-        self.connection = self.sora.create_connection(
+        self._sora = Sora()
+        self._connection = self._sora.create_connection(
             signaling_urls=signaling_urls,
             role="sendrecv",
             channel_id=channel_id,
@@ -53,7 +54,6 @@ class MessagingSendrecv:
         self.sender_id = random.randint(1, 10000)
 
         self._data_channels = data_channels
-        self._sendable_data_channels = set()
 
         self._connection.on_data_channel = self._on_data_channel
         self._connection.on_message = self._on_message
@@ -66,6 +66,21 @@ class MessagingSendrecv:
 
     def disconnect(self):
         self._connection.disconnect()
+
+    def _on_set_offer(self, raw_message: str):
+        message = json.loads(raw_message)
+        if message["type"] == "offer":
+            self._connection_id = message["connectionId"]
+            self._connected.set()
+
+    def _on_notify(self, raw_message: str):
+        message = json.loads(raw_message)
+        if (
+            message["type"] == "notify"
+            and message["event"] == "connection.created"
+            and message["connectionId"] == self._connection_id
+        ):
+            self._connected.set()
 
     def _on_disconnect(self, error_code: SoraSignalingErrorCode, message: str):
         print(f"Sora から切断されました: error_code='{error_code}' message='{message}'")

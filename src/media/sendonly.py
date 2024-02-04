@@ -2,7 +2,7 @@ import argparse
 import json
 import os
 from threading import Event
-from typing import Any, Dict
+from typing import Any, Dict, List
 
 import cv2
 import sounddevice
@@ -15,7 +15,7 @@ class SendOnly:
 
     _connection_id: str
 
-    _connected: Event()
+    _connected: Event
     _closed: bool = False
 
     _audio_source: AudioSource
@@ -25,8 +25,9 @@ class SendOnly:
 
     def __init__(
         self,
-        signaling_urls,
-        channel_id,
+        # python 3.8 まで対応なので list[str] ではなく List[str] にする
+        signaling_urls: List[str],
+        channel_id: str,
         metadata,
         camera_id,
         audio_codec_type,
@@ -124,7 +125,7 @@ class SendOnly:
                 self._video_capture.release()
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser()
 
     # オプション引数の代わりに環境変数による指定も可能。
@@ -204,3 +205,7 @@ if __name__ == "__main__":
         args.openh264,
     )
     sendonly.run()
+
+
+if __name__ == "__main__":
+    main()

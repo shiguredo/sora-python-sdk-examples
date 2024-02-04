@@ -3,7 +3,7 @@
 # コマンドライン引数で指定されたチャネルおよびラベルに、同じくコマンドライン引数で指定されたデータを送信する。
 #
 # 実行例:
-# $ rye run python messaging_sendonly/messaging_sendonly.py --signaling-urls wss://sora.example.com/signaling --channel-id sora --label '#foo' --data hello
+# $ rye run python src/messaging_sendonly.py --signaling-urls wss://sora.example.com/signaling --channel-id sora --label '#foo' --data hello
 import argparse
 import json
 import os
@@ -55,7 +55,7 @@ class MessagingSendonly:
         self.connection.disconnect()
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser()
 
     # 必須引数
@@ -104,3 +104,7 @@ if __name__ == "__main__":
     messaging_sendonly.connect()
     messaging_sendonly.send(args.data.encode("utf-8"))
     messaging_sendonly.disconnect()
+
+
+if __name__ == "__main__":
+    main()

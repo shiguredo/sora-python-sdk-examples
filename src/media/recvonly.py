@@ -3,6 +3,7 @@ import json
 import os
 import queue
 from threading import Event
+from typing import List
 
 import cv2
 import sounddevice
@@ -15,7 +16,7 @@ class Recvonly:
 
     _connection_id: str
 
-    _connected: Event()
+    _connected: Event
     _closed: bool = False
 
     _audio_sink: SoraAudioSink
@@ -23,7 +24,8 @@ class Recvonly:
 
     def __init__(
         self,
-        signaling_urls,
+        # python 3.8 まで対応なので list[str] ではなく List[str] にする
+        signaling_urls: List[str],
         channel_id,
         metadata,
         openh264,
@@ -125,7 +127,7 @@ class Recvonly:
                 cv2.destroyAllWindows()
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser()
 
     # オプション引数の代わりに環境変数による指定も可能。
@@ -160,3 +162,7 @@ if __name__ == "__main__":
 
     recvonly = Recvonly(args.signaling_urls, args.channel_id, metadata, args.openh264)
     recvonly.run()
+
+
+if __name__ == "__main__":
+    main()
