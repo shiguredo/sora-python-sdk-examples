@@ -13,12 +13,31 @@ import json
 import os
 import random
 import time
+from threading import Event
+from typing import Any, Dict
 
-from sora_sdk import Sora
+from sora_sdk import Sora, SoraSignalingErrorCode
 
 
 class MessagingSendrecv:
-    def __init__(self, signaling_urls, channel_id, data_channels, metadata):
+    _sora: Sora
+    _connection: Sora.Connection
+
+    _connection_id: str
+
+    _connected: Event
+    _closed: bool = False
+
+    _data_channels: [Dict[str, Any]]
+    _sendable_data_channels: Event
+
+    def __init__(
+        self,
+        signaling_urls: list(str),
+        channel_id: str,
+        data_channels: [Dict[str, Any]],
+        metadata: Dict[str, Any],
+    ):
         self.sora = Sora()
         self.connection = self.sora.create_connection(
             signaling_urls=signaling_urls,
@@ -32,40 +51,50 @@ class MessagingSendrecv:
         )
 
         self.sender_id = random.randint(1, 10000)
-        self.data_channels = data_channels
-        self.shutdown = False
-        self.sendable_data_channels = set()
-        self.connection.on_data_channel = self.on_data_channel
-        self.connection.on_message = self.on_message
-        self.connection.on_disconnect = self.on_disconnect
 
-    def on_disconnect(self, error_code, message):
+        self._data_channels = data_channels
+        self._sendable_data_channels = set()
+
+        self._connection.on_data_channel = self._on_data_channel
+        self._connection.on_message = self._on_message
+        self._connection.on_disconnect = self._on_disconnect
+
+    def connect(self):
+        self._connection.connect()
+
+        assert self._connected.wait(10), "接続に失敗しました"
+
+    def disconnect(self):
+        self._connection.disconnect()
+
+    def _on_disconnect(self, error_code: SoraSignalingErrorCode, message: str):
         print(f"Sora から切断されました: error_code='{error_code}' message='{message}'")
-        self.shutdown = True
+        self._closed = True
+        self._connected.clear()
 
-    def on_message(self, label, data):
+    def _on_message(self, label: str, data: bytes):
         print(f"メッセージを受信しました: label={label}, data={data}")
 
-    def on_data_channel(self, label):
-        for data_channel in self.data_channels:
+    def _on_data_channel(self, label: str):
+        for data_channel in self._data_channels:
             if data_channel["label"] != label:
                 continue
 
             if data_channel["direction"] in ["sendrecv", "sendonly"]:
-                self.sendable_data_channels.add(label)
+                self._sendable_data_channels.add(label)
                 break
 
     def run(self):
         # Sora に接続する
-        self.connection.connect()
+        self.connect()
         try:
             # 一秒毎に sendonly ないし sendrecv のラベルにメッセージを送信する
             i = 0
-            while not self.shutdown:
+            while not self._closed:
                 if i % 100 == 0:
-                    for label in self.sendable_data_channels:
+                    for label in self._sendable_data_channels:
                         data = f"sender={self.sender_id}, no={i // 100}".encode("utf-8")
-                        self.connection.send_data_channel(label, data)
+                        self._connection.send_data_channel(label, data)
                         print(f"メッセージを送信しました: label={label}, data={data}")
 
                 time.sleep(0.01)
@@ -74,7 +103,7 @@ class MessagingSendrecv:
             pass
         finally:
             # Sora から切断する（すでに切断済みの場合には無視される）
-            self.connection.disconnect()
+            self.disconnect()
 
 
 if __name__ == "__main__":
