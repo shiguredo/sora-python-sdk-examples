@@ -63,6 +63,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--signaling-urls",
         default=default_signaling_urls,
+        type=str,
+        nargs="+",
         required=not default_signaling_urls,
         help="シグナリング URL",
     )
