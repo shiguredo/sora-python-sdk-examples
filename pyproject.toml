@@ -14,12 +14,12 @@ readme = "README.md"
 requires-python = ">= 3.8"
 
 [project.scripts]
-media_sendonly = "sora-sdk-samples.media.sendonly:main"
-media_recvonly = "sora-sdk-samples.media.recvonly:main"
-messaging_sendrecv = "sora-sdk-samples.messaging.sendrecv:main"
-messaging_sendonly = "sora-sdk-samples.messaging.sendonly:main"
-messaging_recvonly = "sora-sdk-samples.messaging.recvonly:main"
-hideface_sender = "sora-sdk-samples.ml.hideface_sender:main"
+media_sendonly = "media:sendonly"
+media_recvonly = "media:recvonly"
+messaging_sendrecv = "messaging:sendrecv"
+messaging_sendonly = "messaging:sendonly"
+messaging_recvonly = "messaging:recvonly"
+hideface_sender = "ml:hideface_sender"
 
 [build-system]
 requires = ["hatchling"]

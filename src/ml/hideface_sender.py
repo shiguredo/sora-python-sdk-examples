@@ -126,7 +126,7 @@ class LogoStreamer:
         return angle
 
 
-def main():
+def hideface_sender():
     parser = argparse.ArgumentParser()
 
     # 必須引数
@@ -183,4 +183,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    hideface_sender()

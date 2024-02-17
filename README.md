@@ -26,7 +26,7 @@ $ rye sync
 ### サンプルコードの実行
 
 ```console
-$ rye run python recvonly/recvonly.py --signaling-urls $YOUR_SIGNALING_URL1 $YOUR_SIGNLAING_URL2 --channel-id $YOUR_CHANNEL_ID
+$ rye run media_recvonly --signaling-urls $YOUR_SIGNALING_URL1 $YOUR_SIGNALING_URL2 --channel-id $YOUR_CHANNEL_ID
 ```
 
 ## ライセンス

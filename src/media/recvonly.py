@@ -127,7 +127,7 @@ class Recvonly:
                 cv2.destroyAllWindows()
 
 
-def main():
+def recvonly():
     parser = argparse.ArgumentParser()
 
     # オプション引数の代わりに環境変数による指定も可能。
@@ -165,4 +165,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    recvonly()

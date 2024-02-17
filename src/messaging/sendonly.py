@@ -55,7 +55,7 @@ class MessagingSendonly:
         self.connection.disconnect()
 
 
-def main():
+def sendonly():
     parser = argparse.ArgumentParser()
 
     # 必須引数
@@ -107,4 +107,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    sendonly()

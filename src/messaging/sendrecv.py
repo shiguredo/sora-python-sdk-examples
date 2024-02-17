@@ -121,7 +121,7 @@ class MessagingSendrecv:
             self.disconnect()
 
 
-def main():
+def recvonly():
     parser = argparse.ArgumentParser()
 
     # 必須引数（環境変数からも指定可能）
@@ -164,4 +164,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    recvonly()
