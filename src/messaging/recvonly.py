@@ -51,7 +51,7 @@ class MessagingRecvonly:
             self.connection.disconnect()
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser()
 
     # 必須引数（環境変数からも指定可能）
@@ -93,3 +93,7 @@ if __name__ == "__main__":
         args.signaling_urls, args.channel_id, args.labels, metadata
     )
     messaging_recvonly.run()
+
+
+if __name__ == "__main__":
+    main()

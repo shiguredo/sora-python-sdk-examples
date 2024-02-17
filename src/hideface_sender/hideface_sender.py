@@ -126,7 +126,7 @@ class LogoStreamer:
         return angle
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser()
 
     # 必須引数
@@ -174,9 +174,13 @@ if __name__ == "__main__":
         signaling_urls=args.signaling_urls,
         role="sendonly",
         channel_id=args.channel_id,
-        metadata=args.metadata,
+        metadata=metadata,
         camera_id=args.camera_id,
         video_height=args.video_height,
         video_width=args.video_width,
     )
     streamer.run()
+
+
+if __name__ == "__main__":
+    main()
