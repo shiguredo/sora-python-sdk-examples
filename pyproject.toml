@@ -19,6 +19,7 @@ media_recvonly = "sora-sdk-samples.media.recvonly:main"
 messaging_sendrecv = "sora-sdk-samples.messaging.sendrecv:main"
 messaging_sendonly = "sora-sdk-samples.messaging.sendonly:main"
 messaging_recvonly = "sora-sdk-samples.messaging.recvonly:main"
+hideface_sender = "sora-sdk-samples.ml.hideface_sender:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -32,7 +33,7 @@ dev-dependencies = ["ruff>=0.2.1"]
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/media", "src/messaging"]
+packages = ["src/media", "src/messaging", "src/ml"]
 
 [tool.ruff]
 line-length = 100
