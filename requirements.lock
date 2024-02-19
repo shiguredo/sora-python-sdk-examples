@@ -7,7 +7,6 @@
 #   all-features: false
 #   with-sources: false
 
--e file:.
 absl-py==1.4.0
     # via mediapipe
 attrs==23.1.0
@@ -29,7 +28,6 @@ kiwisolver==1.4.4
 matplotlib==3.7.2
     # via mediapipe
 mediapipe==0.10.1
-    # via sora-sdk-samples
 numpy==1.24.3
     # via contourpy
     # via matplotlib
@@ -40,9 +38,7 @@ numpy==1.24.3
 opencv-contrib-python==4.8.0.74
     # via mediapipe
 opencv-python==4.9.0.80
-    # via sora-sdk-samples
 opencv-python-headless==4.9.0.80
-    # via sora-sdk-samples
 packaging==23.1
     # via matplotlib
 pillow==10.0.0
@@ -59,6 +55,5 @@ six==1.16.0
 sora-sdk==2024.1.0
 sounddevice==0.4.6
     # via mediapipe
-    # via sora-sdk-samples
 zipp==3.15.0
     # via importlib-resources

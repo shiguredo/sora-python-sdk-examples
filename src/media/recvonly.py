@@ -7,7 +7,7 @@ from typing import List
 
 import cv2
 import sounddevice
-from sora_sdk import Sora, SoraAudioSink, SoraConnection, SoraVideoSink
+from sora_sdk import Sora, SoraAudioSink, SoraConnection, SoraVideoFrame, SoraVideoSink
 
 
 class Recvonly:
@@ -22,6 +22,9 @@ class Recvonly:
     _audio_sink: SoraAudioSink
     _video_sink: SoraVideoSink
 
+    _output_frequency: int
+    _output_channels: int
+
     def __init__(
         self,
         # python 3.8 まで対応なので list[str] ではなく List[str] にする
@@ -32,8 +35,8 @@ class Recvonly:
         output_frequency=16000,
         output_channels=1,
     ):
-        self.output_frequency = output_frequency
-        self.output_channels = output_channels
+        self._output_frequency = output_frequency
+        self._output_channels = output_channels
 
         self._sora = Sora(openh264=openh264)
         self._connection = self._sora.create_connection(
@@ -43,11 +46,11 @@ class Recvonly:
             metadata=metadata,
         )
 
-        self._connection.on_disconnect = self.on_disconnect
+        self._connection.on_disconnect = self._on_disconnect
 
-        self.q_out = queue.Queue()
+        self._q_out = queue.Queue()
 
-        self._connection.on_track = self.on_track
+        self._connection.on_track = self._on_track
 
     def connect(self):
         self._connection.connect()
@@ -71,22 +74,22 @@ class Recvonly:
         ):
             self._connected.set()
 
-    def on_disconnect(self, error_code, message):
+    def _on_disconnect(self, error_code, message):
         print(f"Sora から切断されました: error_code='{error_code}' message='{message}'")
         self._closed = True
         self._connected.clear()
 
-    def on_frame(self, frame):
-        self.q_out.put(frame)
+    def _on_video_frame(self, frame: SoraVideoFrame):
+        self._q_out.put(frame)
 
-    def on_track(self, track):
+    def _on_track(self, track):
         if track.kind == "audio":
             self._audio_sink = SoraAudioSink(track, self.output_frequency, self.output_channels)
         if track.kind == "video":
             self._video_sink = SoraVideoSink(track)
-            self._video_sink.on_frame = self.on_frame
+            self._video_sink.on_frame = self._on_video_frame
 
-    def callback(self, outdata, frames, time, status):
+    def _callback(self, outdata, frames, time, status):
         if self.audio_sink is not None:
             success, data = self._audio_sink.read(frames)
             if success:
@@ -99,9 +102,9 @@ class Recvonly:
     def run(self):
         # サウンドデバイスのOutputStreamを使って音声出力を設定
         with sounddevice.OutputStream(
-            channels=self.output_channels,
-            callback=self.callback,
-            samplerate=self.output_frequency,
+            channels=self._output_channels,
+            callback=self._callback,
+            samplerate=self._output_frequency,
             dtype="int16",
         ):
             self.connect()
@@ -111,7 +114,7 @@ class Recvonly:
                     # Windows 環境の場合 timeout を入れておかないと Queue.get() で
                     # ブロックしたときに脱出方法がなくなる。
                     try:
-                        frame = self.q_out.get(timeout=1)
+                        frame = self._q_out.get(timeout=1)
                     except queue.Empty:
                         continue
                     cv2.imshow("frame", frame.data())
