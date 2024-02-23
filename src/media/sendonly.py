@@ -2,7 +2,8 @@ import argparse
 import json
 import os
 from threading import Event
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+from dotenv import load_dotenv
 
 import cv2
 import sounddevice
@@ -29,23 +30,25 @@ class SendOnly:
         signaling_urls: List[str],
         channel_id: str,
         metadata,
-        camera_id,
-        audio_codec_type,
-        video_codec_type,
-        video_bit_rate,
-        video_width,
-        video_height,
-        openh264,
-        channels=1,
-        samplerate=16000,
+        camera_id: int,
+        audio_codec_type: str,
+        video_codec_type: str,
+        video_bit_rate: int,
+        video_width: Optional[int],
+        video_height: Optional[int],
+        openh264: str,
+        audio_channels: int = 1,
+        audio_sample_rate: int = 16000,
     ):
         # FIXME: audio_channels / audio_sample_rate にする
-        self.channels = channels
-        self.samplerate = samplerate
+        self.audio_channels = audio_channels
+        self.audio_sample_rate = audio_sample_rate
 
         self._sora = Sora(openh264=openh264)
 
-        self._audio_source = self._sora.create_audio_source(self.channels, self.samplerate)
+        self._audio_source = self._sora.create_audio_source(
+            self.audio_channels, self.audio_sample_rate
+        )
         self._video_source = self._sora.create_video_source()
 
         self._connection = self._sora.create_connection(
@@ -105,8 +108,8 @@ class SendOnly:
 
     def run(self):
         with sounddevice.InputStream(
-            samplerate=self.samplerate,
-            channels=self.channels,
+            samplerate=self.audio_sample_rate,
+            channels=self.audio_channels,
             dtype="int16",
             callback=self._callback,
         ):
@@ -126,15 +129,19 @@ class SendOnly:
 
 
 def sendonly():
+    load_dotenv()
     parser = argparse.ArgumentParser()
 
     # オプション引数の代わりに環境変数による指定も可能。
     # 必須引数
-    default_signaling_urls = os.getenv("SORA_SIGNALING_URLS")
+    # SORA_SIGNALING_URLS 環境変数はカンマ区切りで複数指定可能
+    env_signaling_urls = os.getenv("SORA_SIGNALING_URLS")
+    default_signaling_urls = env_signaling_urls.split(",") if env_signaling_urls else None
+
     parser.add_argument(
         "--signaling-urls",
         default=default_signaling_urls,
-        type=str,
+        type=List[str],
         nargs="+",
         required=not default_signaling_urls,
         help="シグナリング URL",
