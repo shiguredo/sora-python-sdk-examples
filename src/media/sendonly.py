@@ -3,33 +3,20 @@ import json
 import os
 from threading import Event
 from typing import Any, Dict, List, Optional
-from dotenv import load_dotenv
 
 import cv2
 import sounddevice
-from sora_sdk import AudioSource, Sora, SoraConnection, VideoSource
+from dotenv import load_dotenv
+from sora_sdk import Sora, SoraConnection, SoraSignalingErrorCode
 
 
 class SendOnly:
-    _sora: Sora
-    _connection: SoraConnection
-
-    _connection_id: str
-
-    _connected: Event
-    _closed: bool = False
-
-    _audio_source: AudioSource
-    _video_source: VideoSource
-
-    _video_capture: cv2.VideoCapture
-
     def __init__(
         self,
         # python 3.8 まで対応なので list[str] ではなく List[str] にする
         signaling_urls: List[str],
         channel_id: str,
-        metadata,
+        metadata: Dict[str, str],
         camera_id: int,
         audio_codec_type: str,
         video_codec_type: str,
@@ -40,18 +27,22 @@ class SendOnly:
         audio_channels: int = 1,
         audio_sample_rate: int = 16000,
     ):
-        # FIXME: audio_channels / audio_sample_rate にする
         self.audio_channels = audio_channels
         self.audio_sample_rate = audio_sample_rate
 
-        self._sora = Sora(openh264=openh264)
+        self._sora: Sora = Sora(openh264=openh264)
+
+        self._connection_id = str("")
+        # TODO: connection timeout を設定できるようにする
+        self._connection_default_timeout = 10
+        self._connected = Event()
 
         self._audio_source = self._sora.create_audio_source(
             self.audio_channels, self.audio_sample_rate
         )
         self._video_source = self._sora.create_video_source()
 
-        self._connection = self._sora.create_connection(
+        self._connection: SoraConnection = self._sora.create_connection(
             signaling_urls=signaling_urls,
             role="sendonly",
             channel_id=channel_id,
@@ -76,8 +67,9 @@ class SendOnly:
     def connect(self):
         self._connection.connect()
 
-        # XXX: マジックナンバーを使っているので修正する
-        assert self._connected.wait(timeout=10), "接続がタイムアウトしました"
+        assert self._connected.wait(
+            timeout=self._connection_default_timeout
+        ), "接続がタイムアウトしました"
 
     def disconnect(self):
         self._connection.disconnect()
@@ -98,9 +90,8 @@ class SendOnly:
         if message["type"] == "offer":
             self._connection_id = message["connection_id"]
 
-    def _on_disconnect(self, error_code, message):
+    def _on_disconnect(self, error_code: SoraSignalingErrorCode, message: str):
         print(f"Sora から切断されました: error_code='{error_code}' message='{message}'")
-        self._closed = True
         self._connected.clear()
 
     def _callback(self, indata, frames, time, status):
@@ -116,7 +107,7 @@ class SendOnly:
             self.connect()
 
             try:
-                while self._connected:
+                while self._connected.is_set():
                     success, frame = self._video_capture.read()
                     if not success:
                         continue
@@ -135,8 +126,10 @@ def sendonly():
     # オプション引数の代わりに環境変数による指定も可能。
     # 必須引数
     # SORA_SIGNALING_URLS 環境変数はカンマ区切りで複数指定可能
-    env_signaling_urls = os.getenv("SORA_SIGNALING_URLS")
-    default_signaling_urls = env_signaling_urls.split(",") if env_signaling_urls else None
+    if urls := os.getenv("SORA_SIGNALING_URLS"):
+        default_signaling_urls = urls.split(",")
+    else:
+        default_signaling_urls = None
 
     parser.add_argument(
         "--signaling-urls",
@@ -195,7 +188,7 @@ def sendonly():
     )
     args = parser.parse_args()
 
-    metadata = {}
+    metadata: Dict[str, str] = {}
     if args.metadata:
         metadata = json.loads(args.metadata)
 

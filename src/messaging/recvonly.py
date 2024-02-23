@@ -9,22 +9,21 @@ import json
 import os
 import time
 from threading import Event
+from typing import Dict, List
 
 from sora_sdk import Sora, SoraConnection
 
 
 class MessagingRecvonly:
-    _sora: Sora
-    _connection: SoraConnection
-
-    _connection_id: str
-
-    _connected: Event
-    _closed: bool = False
-
-    def __init__(self, signaling_urls, channel_id, labels, metadata):
+    def __init__(
+        self,
+        signaling_urls: List[str],
+        channel_id: str,
+        labels: List[str],
+        metadata: Dict[str, str],
+    ):
         self._sora = Sora()
-        self._connection = self._sora.create_connection(
+        self._connection: SoraConnection = self._sora.create_connection(
             signaling_urls=signaling_urls,
             role="sendrecv",
             channel_id=channel_id,
@@ -34,6 +33,10 @@ class MessagingRecvonly:
             data_channels=[{"label": label, "direction": "recvonly"} for label in labels],
             data_channel_signaling=True,
         )
+
+        self._connection_id = str("")
+        self._connected = Event()
+        self._closed = False
 
         self._connection.on_set_offer = self._on_set_offer
         self._connection.on_notify = self._on_notify
@@ -58,7 +61,7 @@ class MessagingRecvonly:
         message = json.loads(raw_message)
         if (
             message["type"] == "notify"
-            and message["event"] == "connection.created"
+            and message["event_type"] == "connection.created"
             and message["connection_id"] == self._connection_id
         ):
             self._connected.set()
@@ -89,7 +92,11 @@ def recvonly():
     parser = argparse.ArgumentParser()
 
     # 必須引数（環境変数からも指定可能）
-    default_signaling_urls = os.getenv("SORA_SIGNALING_URLS")
+    # SORA_SIGNALING_URLS 環境変数はカンマ区切りで複数指定可能
+    if urls := os.getenv("SORA_SIGNALING_URLS"):
+        default_signaling_urls = urls.split(",")
+    else:
+        default_signaling_urls = None
     parser.add_argument(
         "--signaling-urls",
         default=default_signaling_urls,
@@ -105,12 +112,14 @@ def recvonly():
         required=not default_channel_id,
         help="チャネルID",
     )
-    default_label = os.getenv("SORA_RECVONLY_LABEL")
-    default_labels = [default_label] if default_label else []
+    if labels := os.getenv("SORA_RECVONLY_LABEL"):
+        default_labels = labels.split(",")
+    else:
+        default_labels = None
     parser.add_argument(
         "--labels",
         default=default_labels,
-        required=not default_label,
+        required=not labels,
         nargs="+",
         help="受信するデータチャネルのラベル名（複数指定可能）",
     )
@@ -119,7 +128,7 @@ def recvonly():
     parser.add_argument("--metadata", default=os.getenv("SORA_METADATA"), help="メタデータ JSON")
     args = parser.parse_args()
 
-    metadata = None
+    metadata: Dict[str, str] = {}
     if args.metadata:
         metadata = json.loads(args.metadata)
 

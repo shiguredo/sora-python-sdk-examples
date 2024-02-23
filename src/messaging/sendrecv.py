@@ -77,7 +77,7 @@ class MessagingSendrecv:
         message = json.loads(raw_message)
         if (
             message["type"] == "notify"
-            and message["event"] == "connection.created"
+            and message["event_type"] == "connection.created"
             and message["connectionId"] == self._connection_id
         ):
             self._connected.set()

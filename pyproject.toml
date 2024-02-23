@@ -10,13 +10,14 @@ dependencies = [
     "sora_sdk>=2024.1.0",
     "mediapipe~=0.10.1",
     "python-dotenv>=1.0.1",
+    "importlib-resources==5.12.0",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
 
 [project.scripts]
-media_sendonly = "media.sendonly:sendonly"
-media_recvonly = "media.recvonly:recvonly"
+media_sendonly = "media.sendonly:sendonly"             #動いた
+media_recvonly = "media.recvonly:recvonly"             #動いた
 messaging_sendrecv = "messaging.sendrecv:recvonly"
 messaging_sendonly = "messaging.sendonly:sendonly"
 messaging_recvonly = "messaging.recvonly:recvonly"
@@ -39,3 +40,6 @@ packages = ["src/media", "src/messaging", "src/ml"]
 [tool.ruff]
 line-length = 100
 indent-width = 4
+
+[tool.ruff.lint]
+select = ["I"]
