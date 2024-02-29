@@ -16,8 +16,8 @@ readme = "README.md"
 requires-python = ">= 3.8"
 
 [project.scripts]
-media_sendonly = "media.sendonly:sendonly"             #動いた
-media_recvonly = "media.recvonly:recvonly"             #動いた
+media_sendonly = "media.sendonly:sendonly"
+media_recvonly = "media.recvonly:recvonly"
 messaging_sendrecv = "messaging.sendrecv:recvonly"
 messaging_sendonly = "messaging.sendonly:sendonly"
 messaging_recvonly = "messaging.recvonly:recvonly"
