@@ -2,4 +2,5 @@
 .ruff_cache
 *.pyc
 __pycache__
-.env
+.env*
+!.env.template
