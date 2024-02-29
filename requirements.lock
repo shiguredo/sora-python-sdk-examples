@@ -30,6 +30,10 @@ matplotlib==3.7.2
     # via mediapipe
 mediapipe==0.10.1
     # via sora-sdk-samples
+mypy==1.8.0
+    # via sora-sdk-samples
+mypy-extensions==1.0.0
+    # via mypy
 numpy==1.26.4
     # via contourpy
     # via matplotlib
@@ -64,3 +68,5 @@ sora-sdk==2024.1.0
 sounddevice==0.4.6
     # via mediapipe
     # via sora-sdk-samples
+typing-extensions==4.10.0
+    # via mypy
