@@ -20,6 +20,15 @@ from sora_sdk import (
 
 
 class Recvonly:
+    _sora: Sora
+    _connection: SoraConnection
+
+    _connection_id: str
+    _connected: Event = Event()
+
+    _audio_sink: SoraAudioSink
+    _video_sink: SoraVideoSink
+
     def __init__(
         self,
         # python 3.8 まで対応なので list[str] ではなく List[str] にする
@@ -30,12 +39,6 @@ class Recvonly:
         output_frequency: int = 16000,
         output_channels: int = 1,
     ):
-        self._connection_id = str("")
-        self._connected = Event()
-
-        self._audio_sink: SoraAudioSink | None = None
-        self._video_sink: SoraVideoSink | None = None
-
         self._output_frequency = output_frequency
         self._output_channels = output_channels
 
