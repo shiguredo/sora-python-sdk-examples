@@ -28,7 +28,7 @@ class MessagingSendrecv:
     _connected: Event
     _closed: bool = False
 
-    _data_channels: [Dict[str, Any]]
+    _data_channels: List[Dict[str, Any]]
     _sendable_data_channels: set = set()
 
     def __init__(
@@ -36,7 +36,7 @@ class MessagingSendrecv:
         # python 3.8 まで対応なので list[str] ではなく List[str] にする
         signaling_urls: List[str],
         channel_id: str,
-        data_channels: [Dict[str, Any]],
+        data_channels: List[Dict[str, Any]],
         metadata: Dict[str, Any],
     ):
         self._sora = Sora()
@@ -88,7 +88,7 @@ class MessagingSendrecv:
         self._connected.clear()
 
     def _on_message(self, label: str, data: bytes):
-        print(f"メッセージを受信しました: label={label}, data={data}")
+        print(f"メッセージを受信しました: label={label}, data={data.decode('utf-8')}")
 
     def _on_data_channel(self, label: str):
         for data_channel in self._data_channels:
@@ -141,11 +141,11 @@ def recvonly():
         required=not default_channel_id,
         help="チャネルID",
     )
-    default_ddata_channels = os.getenv("SORA_DATA_CHANNELS")
+    default_data_channels = os.getenv("SORA_DATA_CHANNELS")
     parser.add_argument(
         "--data-channels",
-        default=default_ddata_channels,
-        required=not default_ddata_channels,
+        default=default_data_channels,
+        required=not default_data_channels,
         help='使用するデータチャネルを JSON で指定する (例: \'[{"label": "#spam", "direction": "sendrecv"}]\')',
     )
 

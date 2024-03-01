@@ -15,6 +15,14 @@ from sora_sdk import Sora, SoraConnection
 
 
 class MessagingRecvonly:
+    _sora: Sora
+    _connection: SoraConnection
+
+    _connection_id: str
+
+    _connected: Event = Event()
+    _closed: bool = False
+
     def __init__(
         self,
         signaling_urls: List[str],
@@ -33,10 +41,6 @@ class MessagingRecvonly:
             data_channels=[{"label": label, "direction": "recvonly"} for label in labels],
             data_channel_signaling=True,
         )
-
-        self._connection_id = str("")
-        self._connected = Event()
-        self._closed = False
 
         self._connection.on_set_offer = self._on_set_offer
         self._connection.on_notify = self._on_notify
@@ -66,7 +70,7 @@ class MessagingRecvonly:
         ):
             self._connected.set()
 
-    def on_disconnect(self, error_code, message):
+    def _on_disconnect(self, error_code, message):
         print(f"Sora から切断されました: error_code='{error_code}' message='{message}'")
         self._closed = True
         self._connected.clear()
@@ -79,7 +83,7 @@ class MessagingRecvonly:
         self.connect()
         try:
             # Ctrl+C が押される or 切断されるまでメッセージ受信を待機
-            while not self.shutdown:
+            while not self._closed:
                 time.sleep(0.01)
         except KeyboardInterrupt:
             pass

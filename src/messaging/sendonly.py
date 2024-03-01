@@ -8,51 +8,61 @@ import argparse
 import json
 import os
 import time
+from threading import Event
 
-from sora_sdk import Sora
+from sora_sdk import Sora, SoraConnection
 
 
 class MessagingSendonly:
+    _sora: Sora
+    _connection: SoraConnection
+
+    _connected: Event = Event()
+    _closed: bool = False
+
+    _label: str
+    _is_data_channel_ready: bool = False
+
     def __init__(self, signaling_urls, channel_id, label, metadata):
-        self.sora = Sora()
-        self.connection = self.sora.create_connection(
+        self._label = label
+
+        self._sora = Sora()
+        self._connection = self.sora.create_connection(
             signaling_urls=signaling_urls,
             role="sendrecv",
             channel_id=channel_id,
             metadata=metadata,
             audio=False,
             video=False,
-            data_channels=[{"label": label, "direction": "sendonly"}],
+            data_channels=[{"label": self.label, "direction": "sendonly"}],
             data_channel_signaling=True,
         )
 
-        self.disconnected = False
-        self.label = label
-        self.is_data_channel_ready = False
-        self.connection.on_data_channel = self.on_data_channel
-        self.connection.on_disconnect = self.on_disconnect
+        self._connection.on_data_channel = self.on_data_channel
+        self._connection.on_disconnect = self.on_disconnect
 
-    def on_disconnect(self, error_code, message):
+    def _on_disconnect(self, error_code, message):
         print(f"Sora から切断されました: error_code='{error_code}' message='{message}'")
-        self.disconnected = True
+        self._connected.clear()
+        self._closed = True
 
-    def on_data_channel(self, label):
-        if self.label == label:
-            self.is_data_channel_ready = True
+    def _on_data_channel(self, label):
+        if self._label == label:
+            self._is_data_channel_ready = True
 
     def connect(self):
-        self.connection.connect()
+        self._connection.connect()
 
     def send(self, data):
         # on_data_channel() が呼ばれるまではデータチャネルの準備ができていないので待機
-        while not self.is_data_channel_ready and not self.disconnected:
+        while not self._is_data_channel_ready and not self._closed:
             time.sleep(0.01)
 
-        self.connection.send_data_channel(self.label, data)
-        print(f"メッセージを送信しました: label={self.label}, data={data}")
+        self._connection.send_data_channel(self._label, data)
+        print(f"メッセージを送信しました: label={self._label}, data={data}")
 
     def disconnect(self):
-        self.connection.disconnect()
+        self._connection.disconnect()
 
 
 def sendonly():
