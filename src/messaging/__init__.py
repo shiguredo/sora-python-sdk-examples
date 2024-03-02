@@ -8,17 +8,6 @@ from sora_sdk import Sora, SoraConnection, SoraSignalingErrorCode
 
 
 class SoraClient:
-    _sora: Sora
-    _connection: SoraConnection
-
-    _connection_id: str
-
-    _connected: Event
-    _closed: bool = False
-
-    _data_channels: List[Dict[str, Any]]
-    _sendable_data_channels: set = set()
-
     def __init__(
         self,
         # python 3.8 まで対応なので list[str] ではなく List[str] にする
@@ -30,7 +19,7 @@ class SoraClient:
         self._data_channels = data_channels
 
         self._sora = Sora()
-        self._connection = self._sora.create_connection(
+        self._connection: SoraConnection = self._sora.create_connection(
             signaling_urls=signaling_urls,
             role="sendrecv",
             channel_id=channel_id,
@@ -40,6 +29,11 @@ class SoraClient:
             data_channels=self._data_channels,
             data_channel_signaling=True,
         )
+        self._connection_id: str = ""
+
+        self._connected = Event()
+        self._closed: bool = False
+        self._sendable_data_channels: set = set()
 
         self.sender_id = random.randint(1, 10000)
 

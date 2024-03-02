@@ -11,15 +11,6 @@ from sora_sdk import Sora, SoraConnection, SoraSignalingErrorCode
 
 
 class SendOnly:
-    _sora: Sora
-    _connection: SoraConnection
-
-    _connection_id: str
-
-    _connected: Event = Event()
-    _closed: bool = False
-    _default_connection_timeout_s: float = 10.0
-
     def __init__(
         self,
         # python 3.8 まで対応なので list[str] ではなく List[str] にする
@@ -57,6 +48,10 @@ class SendOnly:
             audio_source=self._audio_source,
             video_source=self._video_source,
         )
+        self._connection_id = ""
+        self._connected = Event()
+        self._closed = False
+        self._default_connection_timeout_s = 10.0
 
         self._connection.on_set_offer = self._on_set_offer
         self._connection.on_notify = self._on_notify

@@ -10,24 +10,10 @@ import mediapipe as mp
 import numpy as np
 from dotenv import load_dotenv
 from PIL import Image
-from sora_sdk import Sora, SoraConnection, SoraVideoSource
+from sora_sdk import Sora, SoraVideoSource
 
 
 class LogoStreamer:
-    _sora: Sora
-    _connection: SoraConnection
-
-    _connection_id: str
-
-    _connected: Event = Event()
-    _closed: bool = False
-    _default_connection_timeout_s: int = 10
-
-    _video_source: SoraVideoSource
-    _video_capture: cv2.VideoCapture
-
-    _logo: Image.Image
-
     def __init__(
         self,
         signaling_urls,
@@ -41,7 +27,7 @@ class LogoStreamer:
         self.mp_face_detection = mp.solutions.face_detection
 
         self._sora = Sora()
-        self._video_source = self._sora.create_video_source()
+        self._video_source: SoraVideoSource = self._sora.create_video_source()
         self._connection = self._sora.create_connection(
             signaling_urls=signaling_urls,
             role=role,
@@ -49,6 +35,11 @@ class LogoStreamer:
             metadata=metadata,
             video_source=self.video_source,
         )
+        self._connection_id = ""
+
+        self._connected = Event()
+        self._closed = False
+        self._default_connection_timeout_s = 10.0
 
         self._connection.on_set_offer = self._on_set_offer
         self._connection.on_notify = self._on_notify

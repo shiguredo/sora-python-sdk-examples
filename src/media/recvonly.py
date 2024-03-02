@@ -3,7 +3,7 @@ import json
 import os
 import queue
 from threading import Event
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import cv2
 import sounddevice
@@ -20,23 +20,6 @@ from sora_sdk import (
 
 
 class Recvonly:
-    _sora: Sora
-    _connection: SoraConnection
-
-    _connection_id: str
-
-    _connected: Event = Event()
-    _closed: bool = False
-    _default_connection_timeout_s: float = 10.0
-
-    _audio_sink: SoraAudioSink
-    _video_sink: SoraVideoSink
-
-    _output_channels: int
-    _output_frequency: int
-
-    _q_out: queue.Queue = queue.Queue()
-
     def __init__(
         self,
         # python 3.8 まで対応なので list[str] ではなく List[str] にする
@@ -57,6 +40,15 @@ class Recvonly:
             channel_id=channel_id,
             metadata=metadata,
         )
+        self._connection_id = ""
+        self._connected = Event()
+        self._closed = False
+        self._default_connection_timeout_s = 10.0
+
+        self._audio_sink: Optional[SoraAudioSink] = None
+        self._video_sink: Optional[SoraVideoSink] = None
+
+        self._q_out: queue.Queue = queue.Queue()
 
         self._connection.on_set_offer = self._on_set_offer
         self._connection.on_notify = self._on_notify
