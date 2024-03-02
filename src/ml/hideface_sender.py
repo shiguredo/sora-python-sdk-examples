@@ -104,7 +104,6 @@ class LogoStreamer:
             ) as face_detection:
                 angle = 0
                 while self._connected.is_set() and self._video_capture.isOpened():
-                    print("frame 処理")
                     angle = self.run_one_frame(face_detection, angle)
         except KeyboardInterrupt:
             pass
@@ -115,8 +114,8 @@ class LogoStreamer:
     def run_one_frame(self, face_detection, angle):
         # フレームを取得する
         print("フレームを取得")
-        while self.running and self.video_capture.isOpened():
-            success, frame = self.video_capture.read()
+        while self.running and self._video_capture.isOpened():
+            success, frame = self._video_capture.read()
             if not success:
                 continue
 
@@ -207,7 +206,10 @@ def hideface_sender():
     # オプション引数
     parser.add_argument("--metadata", default=os.getenv("SORA_METADATA"), help="メタデータ JSON")
     parser.add_argument(
-        "--camera-id", type=int, default=0, help="cv2.VideoCapture() に渡すカメラ ID"
+        "--camera-id",
+        type=int,
+        default=int(os.getenv("SORA_CAMERA_ID", "0")),
+        help="cv2.VideoCapture() に渡すカメラ ID",
     )
     parser.add_argument(
         "--video-width",
