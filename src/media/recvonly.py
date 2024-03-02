@@ -3,7 +3,7 @@ import json
 import os
 import queue
 from threading import Event
-from typing import Dict, List
+from typing import Any, Dict, List
 
 import cv2
 import sounddevice
@@ -24,10 +24,18 @@ class Recvonly:
     _connection: SoraConnection
 
     _connection_id: str
+
     _connected: Event = Event()
+    _closed: bool = False
+    _default_connection_timeout_s: float = 10.0
 
     _audio_sink: SoraAudioSink
     _video_sink: SoraVideoSink
+
+    _output_channels: int
+    _output_frequency: int
+
+    _q_out: queue.Queue = queue.Queue()
 
     def __init__(
         self,
@@ -55,29 +63,24 @@ class Recvonly:
         self._connection.on_disconnect = self._on_disconnect
         self._connection.on_track = self._on_track
 
-        self._q_out = queue.Queue()
-
     def connect(self):
-        print("connect")
         self._connection.connect()
 
-        assert self._connected.wait(timeout=10), "接続に失敗しました"
+        assert self._connected.wait(
+            timeout=self._default_connection_timeout_s
+        ), "接続に失敗しました"
 
     def disconnect(self):
         self._connection.disconnect()
 
     def _on_set_offer(self, raw_message: str):
-        print("on set offer")
-        message = json.loads(raw_message)
+        message: Dict[str, Any] = json.loads(raw_message)
         if message["type"] == "offer":
             print(f"connection_id: {message['connection_id']}")
             self._connection_id = message["connection_id"]
 
     def _on_notify(self, raw_message: str):
-        print("on notify")
-        print(raw_message)
-        message = json.loads(raw_message)
-        print(f"connection_id: {message['connection_id']}")
+        message: Dict[str, Any] = json.loads(raw_message)
         if (
             message["type"] == "notify"
             and message["event_type"] == "connection.created"
@@ -89,13 +92,12 @@ class Recvonly:
     def _on_disconnect(self, error_code: SoraSignalingErrorCode, message: str):
         print(f"Sora から切断されました: error_code='{error_code}' message='{message}'")
         self._connected.clear()
+        self._closed = True
 
     def _on_video_frame(self, frame: SoraVideoFrame):
-        print("on video frame")
         self._q_out.put(frame)
 
     def _on_track(self, track: SoraMediaTrack):
-        print(f"on track: {track.kind}")
         if track.kind == "audio":
             self._audio_sink = SoraAudioSink(track, self._output_frequency, self._output_channels)
         if track.kind == "video":
@@ -103,7 +105,6 @@ class Recvonly:
             self._video_sink.on_frame = self._on_video_frame
 
     def _callback(self, outdata, frames, time, status):
-        print("callback")
         if self._audio_sink is not None:
             success, data = self._audio_sink.read(frames)
             if success:
@@ -123,7 +124,6 @@ class Recvonly:
         ):
             self.connect()
             try:
-                print("try start")
                 while self._connected.is_set():
                     # Windows 環境の場合 timeout を入れておかないと Queue.get() で
                     # ブロックしたときに脱出方法がなくなる。
@@ -145,6 +145,7 @@ class Recvonly:
 
 
 def recvonly():
+    # .env 読み込み
     load_dotenv()
     parser = argparse.ArgumentParser()
 

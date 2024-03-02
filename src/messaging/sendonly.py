@@ -7,65 +7,16 @@
 import argparse
 import json
 import os
-import time
-from threading import Event
 
-from sora_sdk import Sora, SoraConnection
+from dotenv import load_dotenv
 
-
-class MessagingSendonly:
-    _sora: Sora
-    _connection: SoraConnection
-
-    _connected: Event = Event()
-    _closed: bool = False
-
-    _label: str
-    _is_data_channel_ready: bool = False
-
-    def __init__(self, signaling_urls, channel_id, label, metadata):
-        self._label = label
-
-        self._sora = Sora()
-        self._connection = self.sora.create_connection(
-            signaling_urls=signaling_urls,
-            role="sendrecv",
-            channel_id=channel_id,
-            metadata=metadata,
-            audio=False,
-            video=False,
-            data_channels=[{"label": self.label, "direction": "sendonly"}],
-            data_channel_signaling=True,
-        )
-
-        self._connection.on_data_channel = self.on_data_channel
-        self._connection.on_disconnect = self.on_disconnect
-
-    def _on_disconnect(self, error_code, message):
-        print(f"Sora から切断されました: error_code='{error_code}' message='{message}'")
-        self._connected.clear()
-        self._closed = True
-
-    def _on_data_channel(self, label):
-        if self._label == label:
-            self._is_data_channel_ready = True
-
-    def connect(self):
-        self._connection.connect()
-
-    def send(self, data):
-        # on_data_channel() が呼ばれるまではデータチャネルの準備ができていないので待機
-        while not self._is_data_channel_ready and not self._closed:
-            time.sleep(0.01)
-
-        self._connection.send_data_channel(self._label, data)
-        print(f"メッセージを送信しました: label={self._label}, data={data}")
-
-    def disconnect(self):
-        self._connection.disconnect()
+from messaging import SoraClient
 
 
 def sendonly():
+    # .env を読み込む
+    load_dotenv()
+
     parser = argparse.ArgumentParser()
 
     # 必須引数
@@ -85,18 +36,19 @@ def sendonly():
         required=not default_channel_id,
         help="チャネルID",
     )
-    default_sendonly_label = os.getenv("SORA_SENDONLY_LABEL")
+    default_messaging_label = os.getenv("SORA_MESSAGING_LABEL")
     parser.add_argument(
-        "--label",
-        default=default_sendonly_label,
-        required=not default_sendonly_label,
+        "--messaging-label",
+        default=default_messaging_label,
+        required=not default_messaging_label,
         help="送信するデータチャネルのラベル名",
     )
-    default_sendonly_data = os.getenv("SORA_SENDONLY_DATA")
+
+    default_messaging_data = os.getenv("SORA_MESSAGING_DATA")
     parser.add_argument(
-        "--data",
-        default=default_sendonly_data,
-        required=not default_sendonly_data,
+        "--messaging-data",
+        default=default_messaging_data,
+        required=not default_messaging_data,
         help="送信するデータ",
     )
 
@@ -108,11 +60,13 @@ def sendonly():
     if args.metadata:
         metadata = json.loads(args.metadata)
 
-    messaging_sendonly = MessagingSendonly(
-        args.signaling_urls, args.channel_id, args.label, metadata
-    )
+    # data_channels 組み立て
+    data_channels = [{"label": args.messaging_label, "direction": "sendonly"}]
+    messaging_sendonly = SoraClient(args.signaling_urls, args.channel_id, data_channels, metadata)
     messaging_sendonly.connect()
+
     messaging_sendonly.send(args.data.encode("utf-8"))
+
     messaging_sendonly.disconnect()
 
 

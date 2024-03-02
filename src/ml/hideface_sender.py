@@ -3,15 +3,31 @@ import json
 import math
 import os
 from pathlib import Path
+from threading import Event
 
 import cv2
 import mediapipe as mp
 import numpy as np
+from dotenv import load_dotenv
 from PIL import Image
-from sora_sdk import Sora
+from sora_sdk import Sora, SoraConnection, SoraVideoSource
 
 
 class LogoStreamer:
+    _sora: Sora
+    _connection: SoraConnection
+
+    _connection_id: str
+
+    _connected: Event = Event()
+    _closed: bool = False
+    _default_connection_timeout_s: int = 10
+
+    _video_source: SoraVideoSource
+    _video_capture: cv2.VideoCapture
+
+    _logo: Image.Image
+
     def __init__(
         self,
         signaling_urls,
@@ -24,49 +40,76 @@ class LogoStreamer:
     ):
         self.mp_face_detection = mp.solutions.face_detection
 
-        self.sora = Sora()
-        self.video_source = self.sora.create_video_source()
-        self.connection = self.sora.create_connection(
+        self._sora = Sora()
+        self._video_source = self._sora.create_video_source()
+        self._connection = self._sora.create_connection(
             signaling_urls=signaling_urls,
             role=role,
             channel_id=channel_id,
             metadata=metadata,
             video_source=self.video_source,
         )
-        self.connection.on_disconnect = self.on_disconnect
 
-        self.video_capture = cv2.VideoCapture(camera_id)
+        self._connection.on_set_offer = self._on_set_offer
+        self._connection.on_notify = self._on_notify
+        self._connection.on_disconnect = self._on_disconnect
+
+        self._video_capture = cv2.VideoCapture(camera_id)
         if video_width is not None:
-            self.video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, video_width)
+            self._video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, video_width)
         if video_height is not None:
-            self.video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, video_height)
+            self._video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, video_height)
 
-        self.running = True
         # ロゴを読み込む
-        self.logo = Image.open(Path(__file__).parent.joinpath("shiguremaru.png"))
+        self._logo = Image.open(Path(__file__).parent.joinpath("shiguremaru.png"))
 
-    def on_disconnect(self, error_code, message):
+    def connect(self):
+        self._connection.connect()
+
+        assert self._connected.wait(
+            timeout=self._default_connection_timeout_s
+        ), "接続に失敗しました"
+
+    def disconnect(self):
+        self._connection.disconnect()
+
+    def _on_disconnect(self, error_code, message):
         print(f"Sora から切断されました: error_code='{error_code}' message='{message}'")
-        self.running = False
+        self._connected.clear()
+        self._closed = True
+
+    def _on_set_offer(self, raw_message: str):
+        message = json.loads(raw_message)
+        if message["type"] == "offer":
+            self._connection_id = message["connection_id"]
+
+    def _on_notify(self, raw_message: str):
+        message = json.loads(raw_message)
+        if (
+            message["type"] == "notify"
+            and message["event_type"] == "connection.created"
+            and message["connection_id"] == self._connection_id
+        ):
+            self._connected.set()
 
     def run(self):
-        self.connection.connect()
+        self._connection.connect()
         try:
             # 顔検出を用意する
             with self.mp_face_detection.FaceDetection(
                 model_selection=0, min_detection_confidence=0.5
             ) as face_detection:
                 angle = 0
-                while self.running and self.video_capture.isOpened():
+                while self._connected.is_set() and self._video_capture.isOpened():
                     angle = self.run_one_frame(face_detection, angle)
         except KeyboardInterrupt:
             pass
         finally:
-            self.connection.disconnect()
-            self.video_capture.release()
+            self.disconnect()
+            self._video_capture.release()
 
     def run_one_frame(self, face_detection, angle):
-        while self.running and self.video_capture.isOpened():
+        while self._connected.is_set() and self.video_capture.isOpened():
             # フレームを取得する
             success, frame = self.video_capture.read()
             if not success:
@@ -127,6 +170,9 @@ class LogoStreamer:
 
 
 def hideface_sender():
+    # .env を読み込む
+    load_dotenv()
+
     parser = argparse.ArgumentParser()
 
     # 必須引数

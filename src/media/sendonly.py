@@ -11,6 +11,15 @@ from sora_sdk import Sora, SoraConnection, SoraSignalingErrorCode
 
 
 class SendOnly:
+    _sora: Sora
+    _connection: SoraConnection
+
+    _connection_id: str
+
+    _connected: Event = Event()
+    _closed: bool = False
+    _default_connection_timeout_s: float = 10.0
+
     def __init__(
         self,
         # python 3.8 まで対応なので list[str] ではなく List[str] にする
@@ -31,11 +40,6 @@ class SendOnly:
         self.audio_sample_rate = audio_sample_rate
 
         self._sora: Sora = Sora(openh264=openh264)
-
-        self._connection_id = str("")
-        # TODO: connection timeout を設定できるようにする
-        self._connection_default_timeout = 10
-        self._connected = Event()
 
         self._audio_source = self._sora.create_audio_source(
             self.audio_channels, self.audio_sample_rate
@@ -68,7 +72,7 @@ class SendOnly:
         self._connection.connect()
 
         assert self._connected.wait(
-            timeout=self._connection_default_timeout
+            timeout=self._default_connection_timeout_s
         ), "接続がタイムアウトしました"
 
     def disconnect(self):
@@ -93,6 +97,7 @@ class SendOnly:
     def _on_disconnect(self, error_code: SoraSignalingErrorCode, message: str):
         print(f"Sora から切断されました: error_code='{error_code}' message='{message}'")
         self._connected.clear()
+        self._closed = True
 
     def _callback(self, indata, frames, time, status):
         self._audio_source.on_data(indata)

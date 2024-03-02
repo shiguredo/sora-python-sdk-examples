@@ -8,91 +8,17 @@ import argparse
 import json
 import os
 import time
-from threading import Event
-from typing import Dict, List
+from typing import Dict
 
-from sora_sdk import Sora, SoraConnection
+from dotenv import load_dotenv
 
-
-class MessagingRecvonly:
-    _sora: Sora
-    _connection: SoraConnection
-
-    _connection_id: str
-
-    _connected: Event = Event()
-    _closed: bool = False
-
-    def __init__(
-        self,
-        signaling_urls: List[str],
-        channel_id: str,
-        labels: List[str],
-        metadata: Dict[str, str],
-    ):
-        self._sora = Sora()
-        self._connection: SoraConnection = self._sora.create_connection(
-            signaling_urls=signaling_urls,
-            role="sendrecv",
-            channel_id=channel_id,
-            metadata=metadata,
-            audio=False,
-            video=False,
-            data_channels=[{"label": label, "direction": "recvonly"} for label in labels],
-            data_channel_signaling=True,
-        )
-
-        self._connection.on_set_offer = self._on_set_offer
-        self._connection.on_notify = self._on_notify
-        self._connection.on_message = self._on_message
-        self._connection.on_disconnect = self._on_disconnect
-
-    def connect(self):
-        self._connection.connect()
-
-        # XXX: マジックナンバーを使っているので修正する
-        assert self._connected.wait(timeout=10), "接続がタイムアウトしました"
-
-    def disconnect(self):
-        self._connection.disconnect()
-
-    def _on_set_offer(self, raw_message: str):
-        message = json.loads(raw_message)
-        if message["type"] == "offer":
-            self._connection_id = message["connection_id"]
-
-    def _on_notify(self, raw_message: str):
-        message = json.loads(raw_message)
-        if (
-            message["type"] == "notify"
-            and message["event_type"] == "connection.created"
-            and message["connection_id"] == self._connection_id
-        ):
-            self._connected.set()
-
-    def _on_disconnect(self, error_code, message):
-        print(f"Sora から切断されました: error_code='{error_code}' message='{message}'")
-        self._closed = True
-        self._connected.clear()
-
-    def _on_message(self, label, data):
-        print(f"メッセージを受信しました: label={label}, data={data}")
-
-    def run(self):
-        # Sora に接続する
-        self.connect()
-        try:
-            # Ctrl+C が押される or 切断されるまでメッセージ受信を待機
-            while not self._closed:
-                time.sleep(0.01)
-        except KeyboardInterrupt:
-            pass
-        finally:
-            # Sora から切断する（すでに切断済みの場合には無視される）
-            self.disconnect()
+from messaging import SoraClient
 
 
 def recvonly():
+    # .env ファイルを読み込む
+    load_dotenv()
+
     parser = argparse.ArgumentParser()
 
     # 必須引数（環境変数からも指定可能）
@@ -116,16 +42,15 @@ def recvonly():
         required=not default_channel_id,
         help="チャネルID",
     )
-    if labels := os.getenv("SORA_RECVONLY_LABEL"):
-        default_labels = labels.split(",")
-    else:
-        default_labels = None
+
+    default_messaging_label = os.getenv("SORA_MESSAGE_LABEL")
     parser.add_argument(
-        "--labels",
-        default=default_labels,
-        required=not labels,
+        "--messaging-label",
+        default=default_messaging_label,
+        type=str,
         nargs="+",
-        help="受信するデータチャネルのラベル名（複数指定可能）",
+        required=not default_messaging_label,
+        help="データチャネルのラベル名",
     )
 
     # オプション引数
@@ -136,10 +61,22 @@ def recvonly():
     if args.metadata:
         metadata = json.loads(args.metadata)
 
-    messaging_recvonly = MessagingRecvonly(
-        args.signaling_urls, args.channel_id, args.labels, metadata
+    data_channels = ([{"label": "#sample", "direction": "recvonly"}],)
+    messaging_recvonly = SoraClient(
+        args.signaling_urls, args.channel_id, args.labels, metadata, data_channels
     )
-    messaging_recvonly.run()
+
+    # Sora に接続する
+    messaging_recvonly.connect()
+    try:
+        # Ctrl+C が押される or 切断されるまでメッセージ受信を待機
+        while not messaging_recvonly.closed:
+            time.sleep(0.01)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        # Sora から切断する（すでに切断済みの場合には無視される）
+        messaging_recvonly.disconnect()
 
 
 if __name__ == "__main__":
