@@ -12,7 +12,7 @@ from typing import Dict
 
 from dotenv import load_dotenv
 
-from messaging import SoraClient
+from messaging import Messaging
 
 
 def recvonly():
@@ -62,7 +62,7 @@ def recvonly():
         metadata = json.loads(args.metadata)
 
     data_channels = ([{"label": "#sample", "direction": "recvonly"}],)
-    messaging_recvonly = SoraClient(
+    messaging_recvonly = Messaging(
         args.signaling_urls, args.channel_id, args.labels, metadata, data_channels
     )
 

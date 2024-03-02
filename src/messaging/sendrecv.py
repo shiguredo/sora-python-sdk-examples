@@ -14,7 +14,7 @@ import os
 
 from dotenv import load_dotenv
 
-from messaging import SoraClient
+from messaging import Messaging
 
 
 def sendrecv():
@@ -56,7 +56,7 @@ def sendrecv():
     if args.metadata:
         metadata = json.loads(args.metadata)
 
-    messaging_sendrecv = SoraClient(
+    messaging_sendrecv = Messaging(
         args.signaling_urls, args.channel_id, json.loads(args.data_channels), metadata
     )
     messaging_sendrecv.run()

@@ -7,7 +7,7 @@ from typing import Any, Dict, List
 from sora_sdk import Sora, SoraConnection, SoraSignalingErrorCode
 
 
-class SoraClient:
+class Messaging:
     def __init__(
         self,
         # python 3.8 まで対応なので list[str] ではなく List[str] にする

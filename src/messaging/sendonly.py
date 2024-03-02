@@ -10,7 +10,7 @@ import os
 
 from dotenv import load_dotenv
 
-from messaging import SoraClient
+from messaging import Messaging
 
 
 def sendonly():
@@ -62,7 +62,7 @@ def sendonly():
 
     # data_channels 組み立て
     data_channels = [{"label": args.messaging_label, "direction": "sendonly"}]
-    messaging_sendonly = SoraClient(args.signaling_urls, args.channel_id, data_channels, metadata)
+    messaging_sendonly = Messaging(args.signaling_urls, args.channel_id, data_channels, metadata)
     messaging_sendonly.connect()
 
     messaging_sendonly.send(args.data.encode("utf-8"))
