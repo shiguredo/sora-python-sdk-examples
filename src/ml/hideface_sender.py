@@ -114,7 +114,7 @@ class LogoStreamer:
     def run_one_frame(self, face_detection, angle):
         # フレームを取得する
         print("フレームを取得")
-        while self.running and self._video_capture.isOpened():
+        while self._connected.is_set() and self._video_capture.isOpened():
             success, frame = self._video_capture.read()
             if not success:
                 continue
