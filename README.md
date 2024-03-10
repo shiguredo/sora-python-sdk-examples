@@ -29,6 +29,14 @@ $ rye sync
 $ rye run media_recvonly --signaling-urls $YOUR_SIGNALING_URL1 $YOUR_SIGNALING_URL2 --channel-id $YOUR_CHANNEL_ID
 ```
 
+コマンドラインオプションは環境変数で指定することもできます。
+
+```console
+$ cp .env.template .env
+# .env に必要な変数を設定してください。
+$ rye run media_recvonly
+```
+
 ## ライセンス
 
 Apache License 2.0
