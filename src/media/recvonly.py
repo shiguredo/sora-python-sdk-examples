@@ -68,7 +68,6 @@ class Recvonly:
     def _on_set_offer(self, raw_message: str):
         message: Dict[str, Any] = json.loads(raw_message)
         if message["type"] == "offer":
-            print(f"connection_id: {message['connection_id']}")
             self._connection_id = message["connection_id"]
 
     def _on_notify(self, raw_message: str):

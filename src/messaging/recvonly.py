@@ -8,7 +8,6 @@ import argparse
 import json
 import os
 import time
-from typing import Dict
 
 from dotenv import load_dotenv
 
@@ -43,7 +42,7 @@ def recvonly():
         help="チャネルID",
     )
 
-    default_messaging_label = os.getenv("SORA_MESSAGE_LABEL")
+    default_messaging_label = os.getenv("SORA_MESSAGING_LABEL")
     parser.add_argument(
         "--messaging-label",
         default=default_messaging_label,
@@ -57,13 +56,16 @@ def recvonly():
     parser.add_argument("--metadata", default=os.getenv("SORA_METADATA"), help="メタデータ JSON")
     args = parser.parse_args()
 
-    metadata: Dict[str, str] = {}
+    metadata = {}
     if args.metadata:
         metadata = json.loads(args.metadata)
 
-    data_channels = ([{"label": "#sample", "direction": "recvonly"}],)
+    data_channels = [{"label": args.messaging_label, "direction": "recvonly"}]
     messaging_recvonly = Messaging(
-        args.signaling_urls, args.channel_id, args.labels, metadata, data_channels
+        args.signaling_urls,
+        args.channel_id,
+        data_channels,
+        metadata,
     )
 
     # Sora に接続する

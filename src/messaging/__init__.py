@@ -32,8 +32,10 @@ class Messaging:
         self._connection_id: str = ""
 
         self._connected = Event()
-        self._closed: bool = False
+        self._closed = False
+        self._label = data_channels[0]["label"]
         self._sendable_data_channels: set = set()
+        self._is_data_channel_ready = False
 
         self.sender_id = random.randint(1, 10000)
 
@@ -43,6 +45,10 @@ class Messaging:
         self._connection.on_message = self._on_message
         self._connection.on_disconnect = self._on_disconnect
 
+    @property
+    def closed(self):
+        return self._closed
+
     def connect(self):
         self._connection.connect()
 
@@ -51,26 +57,24 @@ class Messaging:
     def disconnect(self):
         self._connection.disconnect()
 
-    def send(self, data):
+    def send(self, data: bytes):
         # on_data_channel() が呼ばれるまではデータチャネルの準備ができていないので待機
         while not self._is_data_channel_ready and not self._closed:
             time.sleep(0.01)
 
         self._connection.send_data_channel(self._label, data)
-        print(f"メッセージを送信しました: label={self._label}, data={data}")
 
     def _on_set_offer(self, raw_message: str):
         message: Dict[str, Any] = json.loads(raw_message)
         if message["type"] == "offer":
-            self._connection_id = message["connectionId"]
-            self._connected.set()
+            self._connection_id = message["connection_id"]
 
     def _on_notify(self, raw_message: str):
         message: Dict[str, Any] = json.loads(raw_message)
         if (
             message["type"] == "notify"
             and message["event_type"] == "connection.created"
-            and message["connectionId"] == self._connection_id
+            and message["connection_id"] == self._connection_id
         ):
             self._connected.set()
 
@@ -89,25 +93,5 @@ class Messaging:
 
             if data_channel["direction"] in ["sendrecv", "sendonly"]:
                 self._sendable_data_channels.add(label)
+                self._is_data_channel_ready = True
                 break
-
-    def run(self):
-        # Sora に接続する
-        self.connect()
-        try:
-            # 一秒毎に sendonly ないし sendrecv のラベルにメッセージを送信する
-            i = 0
-            while not self._closed:
-                if i % 100 == 0:
-                    for label in self._sendable_data_channels:
-                        data = f"sender={self.sender_id}, no={i // 100}".encode("utf-8")
-                        self._connection.send_data_channel(label, data)
-                        print(f"メッセージを送信しました: label={label}, data={data}")
-
-                time.sleep(0.01)
-                i += 1
-        except KeyboardInterrupt:
-            pass
-        finally:
-            # Sora から切断する（すでに切断済みの場合には無視される）
-            self.disconnect()

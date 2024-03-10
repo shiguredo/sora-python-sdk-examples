@@ -24,7 +24,10 @@ def sendrecv():
     parser = argparse.ArgumentParser()
 
     # 必須引数（環境変数からも指定可能）
-    default_signaling_urls = os.getenv("SORA_SIGNALING_URLS")
+    if urls := os.getenv("SORA_SIGNALING_URLS"):
+        default_signaling_urls = urls.split(",")
+    else:
+        default_signaling_urls = None
     parser.add_argument(
         "--signaling-urls",
         default=default_signaling_urls,
@@ -40,12 +43,14 @@ def sendrecv():
         required=not default_channel_id,
         help="チャネルID",
     )
-    default_data_channels = os.getenv("SORA_DATA_CHANNELS")
+    default_messaging_label = os.getenv("SORA_MESSAGING_LABEL")
     parser.add_argument(
-        "--data-channels",
-        default=default_data_channels,
-        required=not default_data_channels,
-        help='使用するデータチャネルを JSON で指定する (例: \'[{"label": "#spam", "direction": "sendrecv"}]\')',
+        "--messaging-label",
+        default=default_messaging_label,
+        type=str,
+        nargs="+",
+        required=not default_messaging_label,
+        help="データチャネルのラベル名",
     )
 
     # オプション引数
@@ -56,10 +61,19 @@ def sendrecv():
     if args.metadata:
         metadata = json.loads(args.metadata)
 
-    messaging_sendrecv = Messaging(
-        args.signaling_urls, args.channel_id, json.loads(args.data_channels), metadata
-    )
-    messaging_sendrecv.run()
+    data_channels = [{"label": args.messaging_label, "direction": "sendrecv"}]
+    messaging_sendrecv = Messaging(args.signaling_urls, args.channel_id, data_channels, metadata)
+    # Sora に接続する
+    messaging_sendrecv.connect()
+    try:
+        while not messaging_sendrecv.closed:
+            # input で入力された文字列を utf-8 でエンコードして送信
+            message = input()
+            messaging_sendrecv.send(message.encode("utf-8"))
+    except KeyboardInterrupt:
+        pass
+    finally:
+        messaging_sendrecv.disconnect()
 
 
 if __name__ == "__main__":

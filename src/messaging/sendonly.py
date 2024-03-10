@@ -20,7 +20,10 @@ def sendonly():
     parser = argparse.ArgumentParser()
 
     # 必須引数
-    default_signaling_urls = os.getenv("SORA_SIGNALING_URLS")
+    if urls := os.getenv("SORA_SIGNALING_URLS"):
+        default_signaling_urls = urls.split(",")
+    else:
+        default_signaling_urls = None
     parser.add_argument(
         "--signaling-urls",
         default=default_signaling_urls,
@@ -44,14 +47,6 @@ def sendonly():
         help="送信するデータチャネルのラベル名",
     )
 
-    default_messaging_data = os.getenv("SORA_MESSAGING_DATA")
-    parser.add_argument(
-        "--messaging-data",
-        default=default_messaging_data,
-        required=not default_messaging_data,
-        help="送信するデータ",
-    )
-
     # オプション引数
     parser.add_argument("--metadata", default=os.getenv("SORA_METADATA"), help="メタデータ JSON")
     args = parser.parse_args()
@@ -63,11 +58,18 @@ def sendonly():
     # data_channels 組み立て
     data_channels = [{"label": args.messaging_label, "direction": "sendonly"}]
     messaging_sendonly = Messaging(args.signaling_urls, args.channel_id, data_channels, metadata)
+
+    # Sora に接続する
     messaging_sendonly.connect()
-
-    messaging_sendonly.send(args.data.encode("utf-8"))
-
-    messaging_sendonly.disconnect()
+    try:
+        while not messaging_sendonly.closed:
+            # input で入力された文字列を utf-8 でエンコードして送信
+            message = input("Enter キーを押すと送信します: ")
+            messaging_sendonly.send(message.encode("utf-8"))
+    except KeyboardInterrupt:
+        pass
+    finally:
+        messaging_sendonly.disconnect()
 
 
 if __name__ == "__main__":
