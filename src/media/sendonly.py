@@ -19,7 +19,6 @@ class SendOnly:
         channel_id: str,
         metadata: Dict[str, str],
         camera_id: int,
-        audio_codec_type: str,
         video_codec_type: str,
         video_bit_rate: int,
         video_width: Optional[int],
@@ -43,7 +42,6 @@ class SendOnly:
             role="sendonly",
             channel_id=channel_id,
             metadata=metadata,
-            audio_codec_type=audio_codec_type,
             video_codec_type=video_codec_type,
             video_bit_rate=video_bit_rate,
             audio_source=self._audio_source,
@@ -152,11 +150,6 @@ def sendonly():
 
     # オプション引数
     parser.add_argument(
-        "--audio-codec-type",
-        default=os.getenv("SORA_AUDIO_CODEC_TYPE"),
-        help="音声コーデックの種類",
-    )
-    parser.add_argument(
         "--video-codec-type",
         default=os.getenv("SORA_VIDEO_CODEC_TYPE"),
         help="映像コーデックの種類",
@@ -200,7 +193,6 @@ def sendonly():
         args.channel_id,
         metadata,
         args.camera_id,
-        args.audio_codec_type,
         args.video_codec_type,
         args.video_bit_rate,
         args.video_width,
