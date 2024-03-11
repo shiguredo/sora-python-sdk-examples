@@ -37,6 +37,18 @@ $ cp .env.template .env
 $ rye run media_recvonly
 ```
 
+例: Sora Labo を利用していて、すべてのサンプルを動かすための `.env` 最小設定
+
+※ あくまで設定例なので、SIGNALLING_URLS や MESSAGING_LABEL は実際の設定に合わせてください。
+
+```
+# SORA_SIGNALING_URLS カンマ区切りで複数指定可能
+SORA_SIGNALING_URLS=wss://0010.canary.sora-labo.shiguredo.app/signaling,wss://0012.canary.sora-labo.shiguredo.app/signaling,wss://0006.canary.sora-labo.shiguredo.app/signaling
+SORA_CHANNEL_ID=your_channel_id
+SORA_METADATA='{"access_token":"生成したアクセストークン"}'
+SORA_MESSAGING_LABEL="#sora-devtools" 
+```
+
 ## ライセンス
 
 Apache License 2.0
