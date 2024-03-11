@@ -105,6 +105,8 @@ class LogoStreamer:
                 angle = 0
                 while self._connected.is_set() and self._video_capture.isOpened():
                     angle = self.run_one_frame(face_detection, angle)
+                print("ループを抜けました")
+                print(self._video_capture.isOpened())
         except KeyboardInterrupt:
             pass
         finally:
@@ -113,7 +115,6 @@ class LogoStreamer:
 
     def run_one_frame(self, face_detection, angle):
         # フレームを取得する
-        print("フレームを取得")
         while self._connected.is_set() and self._video_capture.isOpened():
             success, frame = self._video_capture.read()
             if not success:
@@ -122,8 +123,10 @@ class LogoStreamer:
             print("フレームを取得しました")
             # 高速化の呪文
             frame.flags.writeable = False
+            print("frame flags")
             # mediapipe や PIL で処理できるように色の順序を変える
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            print("cv2 cvtColor")
 
             # mediapipe で顔を検出する
             results = face_detection.process(frame)
@@ -190,7 +193,7 @@ def hideface_sender():
     parser.add_argument(
         "--signaling-urls",
         default=default_signaling_urls,
-        type=List[str],
+        type=str,
         nargs="+",
         required=not default_signaling_urls,
         help="シグナリング URL",

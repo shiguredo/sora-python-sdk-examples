@@ -151,7 +151,7 @@ def recvonly():
     parser.add_argument(
         "--signaling-urls",
         default=default_signaling_urls,
-        type=List[str],
+        type=str,
         nargs="+",
         required=not default_signaling_urls,
         help="シグナリング URL",
