@@ -26,10 +26,10 @@ $ rye sync
 ### サンプルコードの実行
 
 ```console
-$ rye run media_recvonly --signaling-urls $YOUR_SIGNALING_URL1 $YOUR_SIGNALING_URL2 --channel-id $YOUR_CHANNEL_ID
+$ rye run media_recvonly --signaling-urls wss://1.example.com/signaling wss://2.example.com/signaling --channel-id sora
 ```
 
-コマンドラインオプションは環境変数で指定することもできます。
+### コマンドラインの代わりに環境変数を利用する
 
 ```console
 $ cp .env.template .env
@@ -37,25 +37,13 @@ $ cp .env.template .env
 $ rye run media_recvonly
 ```
 
-例: Sora Labo を利用していて、すべてのサンプルを動かすための `.env` 最小設定
-
-※ あくまで設定例なので、SIGNALLING_URLS や MESSAGING_LABEL は実際の設定に合わせてください。
-
-```
-# SORA_SIGNALING_URLS カンマ区切りで複数指定可能
-SORA_SIGNALING_URLS=wss://0010.canary.sora-labo.shiguredo.app/signaling,wss://0012.canary.sora-labo.shiguredo.app/signaling,wss://0006.canary.sora-labo.shiguredo.app/signaling
-SORA_CHANNEL_ID=your_channel_id
-SORA_METADATA='{"access_token":"生成したアクセストークン"}'
-SORA_MESSAGING_LABEL="#sora-devtools" 
-```
-
 ## ライセンス
 
 Apache License 2.0
 
 ```
-Copyright 2023-2023, tnoho (Original Author)
-Copyright 2023-2023, Shiguredo Inc.
+Copyright 2023-2024, tnoho (Original Author)
+Copyright 2023-2024, Shiguredo Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
