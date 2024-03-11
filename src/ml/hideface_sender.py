@@ -79,14 +79,12 @@ class LogoStreamer:
         self._closed = True
 
     def _on_set_offer(self, raw_message: str):
-        print("offer 受信")
         message = json.loads(raw_message)
         if message["type"] == "offer":
             self._connection_id = message["connection_id"]
 
     def _on_notify(self, raw_message: str):
         message = json.loads(raw_message)
-        print(message)
         if (
             message["type"] == "notify"
             and message["event_type"] == "connection.created"
@@ -105,8 +103,6 @@ class LogoStreamer:
                 angle = 0
                 while self._connected.is_set() and self._video_capture.isOpened():
                     angle = self.run_one_frame(face_detection, angle)
-                print("ループを抜けました")
-                print(self._video_capture.isOpened())
         except KeyboardInterrupt:
             pass
         finally:
@@ -120,13 +116,10 @@ class LogoStreamer:
             if not success:
                 continue
 
-            print("フレームを取得しました")
             # 高速化の呪文
             frame.flags.writeable = False
-            print("frame flags")
             # mediapipe や PIL で処理できるように色の順序を変える
             frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            print("cv2 cvtColor")
 
             # mediapipe で顔を検出する
             results = face_detection.process(frame)
@@ -172,7 +165,7 @@ class LogoStreamer:
             frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
             # WebRTC に渡す
-            self.video_source.on_captured(frame)
+            self._video_source.on_captured(frame)
         return angle
 
 
