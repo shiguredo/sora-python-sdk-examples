@@ -1,6 +1,7 @@
 import argparse
 import json
 import os
+import traceback
 from threading import Event
 from typing import Any, Dict, List, Optional
 
@@ -114,6 +115,8 @@ class SendOnly:
                     self._video_source.on_captured(frame)
             except KeyboardInterrupt:
                 pass
+            except Exception:
+                print(traceback.format_exc())
             finally:
                 self.disconnect()
                 self._video_capture.release()

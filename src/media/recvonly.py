@@ -2,6 +2,7 @@ import argparse
 import json
 import os
 import queue
+import traceback
 from threading import Event
 from typing import Any, Dict, List, Optional
 
@@ -128,6 +129,8 @@ class Recvonly:
                         break
             except KeyboardInterrupt:
                 pass
+            except Exception:
+                print(traceback.format_exc())
             finally:
                 self.disconnect()
 

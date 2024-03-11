@@ -11,6 +11,7 @@
 import argparse
 import json
 import os
+import traceback
 
 from dotenv import load_dotenv
 
@@ -72,6 +73,8 @@ def sendrecv():
             messaging_sendrecv.send(message.encode("utf-8"))
     except KeyboardInterrupt:
         pass
+    except Exception:
+        print(traceback.format_exc())
     finally:
         messaging_sendrecv.disconnect()
 

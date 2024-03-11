@@ -8,6 +8,7 @@ import argparse
 import json
 import os
 import time
+import traceback
 
 from dotenv import load_dotenv
 
@@ -76,6 +77,8 @@ def recvonly():
             time.sleep(0.01)
     except KeyboardInterrupt:
         pass
+    except Exception:
+        print(traceback.format_exc())
     finally:
         # Sora から切断する（すでに切断済みの場合には無視される）
         messaging_recvonly.disconnect()

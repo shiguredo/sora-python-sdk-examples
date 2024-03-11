@@ -7,6 +7,7 @@
 import argparse
 import json
 import os
+import traceback
 
 from dotenv import load_dotenv
 
@@ -68,6 +69,8 @@ def sendonly():
             messaging_sendonly.send(message.encode("utf-8"))
     except KeyboardInterrupt:
         pass
+    except Exception:
+        print(traceback.format_exc())
     finally:
         messaging_sendonly.disconnect()
 
