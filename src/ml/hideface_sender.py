@@ -133,7 +133,7 @@ class LogoStreamer:
             pil_image = Image.fromarray(frame)
 
             # ロゴを回しておく
-            rotated_logo = self.logo.rotate(angle)
+            rotated_logo = self._logo.rotate(angle)
             angle += 1
             if angle >= 360:
                 angle = 0
