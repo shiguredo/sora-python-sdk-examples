@@ -10,7 +10,7 @@ import math
 import os
 from pathlib import Path
 from threading import Event
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import cv2
 import mediapipe as mp
@@ -26,7 +26,7 @@ class LogoStreamer:
         signaling_urls: List[str],
         role: str,
         channel_id: str,
-        metadata: Dict[str, str],
+        metadata: Optional[Dict[str, Any]],
         camera_id: int,
         video_width: Optional[int],
         video_height: Optional[int],
