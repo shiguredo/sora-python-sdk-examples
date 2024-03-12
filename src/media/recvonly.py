@@ -145,7 +145,6 @@ def recvonly():
     if urls := os.getenv("SORA_SIGNALING_URLS"):
         # SORA_SIGNALING_URLS 環境変数はカンマ区切りで複数指定可能
         default_signaling_urls = urls.split(",")
-
     parser.add_argument(
         "--signaling-urls",
         default=default_signaling_urls,

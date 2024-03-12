@@ -176,11 +176,11 @@ def hideface_sender():
 
     parser = argparse.ArgumentParser()
 
+    # 必須引数
     default_signaling_urls = None
     if urls := os.getenv("SORA_SIGNALING_URLS"):
         # 環境変数はカンマ区切りで複数指定可能
         default_signaling_urls = urls.split(",")
-
     parser.add_argument(
         "--signaling-urls",
         default=default_signaling_urls,

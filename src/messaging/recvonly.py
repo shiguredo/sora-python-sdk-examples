@@ -27,7 +27,6 @@ def recvonly():
         required=not default_signaling_urls,
         help="シグナリング URL",
     )
-
     default_channel_id = os.getenv("SORA_CHANNEL_ID")
     parser.add_argument(
         "--channel-id",
@@ -35,7 +34,6 @@ def recvonly():
         required=not default_channel_id,
         help="チャネルID",
     )
-
     default_messaging_label = os.getenv("SORA_MESSAGING_LABEL")
     parser.add_argument(
         "--messaging-label",
