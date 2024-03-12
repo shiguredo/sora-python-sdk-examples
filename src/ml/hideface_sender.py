@@ -1,9 +1,3 @@
-"""
-WIP: 以下のエラーが発生するため、デバッグ中
-
-Sora から切断されました: error_code='sora_sdk.sora_sdk_ext.SoraSignalingErrorCode.CLOSE_FAILED' message='Failed to close WebSocket (DC succeeded): ec=End of file wscode=0 wsreason='
-"""
-
 import argparse
 import json
 import math
