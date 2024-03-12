@@ -11,7 +11,6 @@
 import argparse
 import json
 import os
-import traceback
 
 from dotenv import load_dotenv
 
@@ -24,11 +23,9 @@ def sendrecv():
 
     parser = argparse.ArgumentParser()
 
-    # 必須引数（環境変数からも指定可能）
+    default_signaling_urls = None
     if urls := os.getenv("SORA_SIGNALING_URLS"):
         default_signaling_urls = urls.split(",")
-    else:
-        default_signaling_urls = None
     parser.add_argument(
         "--signaling-urls",
         default=default_signaling_urls,
@@ -73,8 +70,6 @@ def sendrecv():
             messaging_sendrecv.send(message.encode("utf-8"))
     except KeyboardInterrupt:
         pass
-    except Exception:
-        print(traceback.format_exc())
     finally:
         messaging_sendrecv.disconnect()
 

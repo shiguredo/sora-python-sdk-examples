@@ -1,7 +1,6 @@
 import argparse
 import json
 import os
-import traceback
 from threading import Event
 from typing import Any, Dict, List, Optional
 
@@ -113,8 +112,6 @@ class SendOnly:
                     self._video_source.on_captured(frame)
             except KeyboardInterrupt:
                 pass
-            except Exception:
-                print(traceback.format_exc())
             finally:
                 self.disconnect()
                 self._video_capture.release()
@@ -127,11 +124,9 @@ def sendonly():
     # オプション引数の代わりに環境変数による指定も可能。
     # 必須引数
     # SORA_SIGNALING_URLS 環境変数はカンマ区切りで複数指定可能
+    default_signaling_urls = None
     if urls := os.getenv("SORA_SIGNALING_URLS"):
         default_signaling_urls = urls.split(",")
-    else:
-        default_signaling_urls = None
-
     parser.add_argument(
         "--signaling-urls",
         default=default_signaling_urls,

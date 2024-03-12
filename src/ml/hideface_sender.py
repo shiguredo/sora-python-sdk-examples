@@ -176,13 +176,10 @@ def hideface_sender():
 
     parser = argparse.ArgumentParser()
 
-    # 引数の代わりに環境変数による指定も可能。
-    # 必須引数
-    # SORA_SIGNALING_URLS 環境変数はカンマ区切りで複数指定可能
+    default_signaling_urls = None
     if urls := os.getenv("SORA_SIGNALING_URLS"):
+        # 環境変数はカンマ区切りで複数指定可能
         default_signaling_urls = urls.split(",")
-    else:
-        default_signaling_urls = None
 
     parser.add_argument(
         "--signaling-urls",
@@ -211,13 +208,13 @@ def hideface_sender():
     parser.add_argument(
         "--video-width",
         type=int,
-        default=os.getenv("SORA_VIDEO_WIDTH"),
+        default=int(os.getenv("SORA_VIDEO_WIDTH", "360")),
         help="入力カメラ映像の横幅のヒント",
     )
     parser.add_argument(
         "--video-height",
         type=int,
-        default=os.getenv("SORA_VIDEO_HEIGHT"),
+        default=int(os.getenv("SORA_VIDEO_HEIGHT", "640")),
         help="入力カメラ映像の高さのヒント",
     )
     args = parser.parse_args()

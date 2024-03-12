@@ -1,14 +1,7 @@
-# Sora のデータチャネル機能を使ってメッセージを受信するサンプルスクリプト。
-#
-# コマンドライン引数で指定されたチャネルおよびラベルに届いたメッセージを標準出力に表示する。
-#
-# 実行例:
-# $ rye run python src/messaging_recvonly.py --signaling-urls wss://example.com/signaling --channel-id sora --labels '#foo' '#bar'
 import argparse
 import json
 import os
 import time
-import traceback
 
 from dotenv import load_dotenv
 
@@ -23,10 +16,9 @@ def recvonly():
 
     # 必須引数（環境変数からも指定可能）
     # SORA_SIGNALING_URLS 環境変数はカンマ区切りで複数指定可能
+    default_signaling_urls = None
     if urls := os.getenv("SORA_SIGNALING_URLS"):
         default_signaling_urls = urls.split(",")
-    else:
-        default_signaling_urls = None
     parser.add_argument(
         "--signaling-urls",
         default=default_signaling_urls,
@@ -77,8 +69,6 @@ def recvonly():
             time.sleep(0.01)
     except KeyboardInterrupt:
         pass
-    except Exception:
-        print(traceback.format_exc())
     finally:
         # Sora から切断する（すでに切断済みの場合には無視される）
         messaging_recvonly.disconnect()

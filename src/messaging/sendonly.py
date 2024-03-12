@@ -1,13 +1,6 @@
-# Sora のデータチャネル機能を使ってメッセージを送信するサンプルスクリプト。
-#
-# コマンドライン引数で指定されたチャネルおよびラベルに、同じくコマンドライン引数で指定されたデータを送信する。
-#
-# 実行例:
-# $ rye run python src/messaging_sendonly.py --signaling-urls wss://sora.example.com/signaling --channel-id sora --label '#foo' --data hello
 import argparse
 import json
 import os
-import traceback
 
 from dotenv import load_dotenv
 
@@ -20,11 +13,11 @@ def sendonly():
 
     parser = argparse.ArgumentParser()
 
-    # 必須引数
+    # 必須引数（環境変数からも指定可能）
+    # SORA_SIGNALING_URLS 環境変数はカンマ区切りで複数指定可能
+    default_signaling_urls = None
     if urls := os.getenv("SORA_SIGNALING_URLS"):
         default_signaling_urls = urls.split(",")
-    else:
-        default_signaling_urls = None
     parser.add_argument(
         "--signaling-urls",
         default=default_signaling_urls,
@@ -33,19 +26,19 @@ def sendonly():
         required=not default_signaling_urls,
         help="シグナリング URL",
     )
-    default_channel_id = os.getenv("SORA_CHANNEL_ID")
+    default_channel_id = os.getenv("SORA_CHANNEL_ID", "sora")
     parser.add_argument(
         "--channel-id",
         default=default_channel_id,
         required=not default_channel_id,
         help="チャネルID",
     )
-    default_messaging_label = os.getenv("SORA_MESSAGING_LABEL")
+    default_messaging_label = os.getenv("SORA_MESSAGING_LABEL", "#example")
     parser.add_argument(
         "--messaging-label",
         default=default_messaging_label,
         required=not default_messaging_label,
-        help="送信するデータチャネルのラベル名",
+        help="データチャネルのラベル名",
     )
 
     # オプション引数
@@ -69,8 +62,6 @@ def sendonly():
             messaging_sendonly.send(message.encode("utf-8"))
     except KeyboardInterrupt:
         pass
-    except Exception:
-        print(traceback.format_exc())
     finally:
         messaging_sendonly.disconnect()
 
