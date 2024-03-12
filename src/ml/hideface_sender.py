@@ -208,13 +208,13 @@ def hideface_sender():
     parser.add_argument(
         "--video-width",
         type=int,
-        default=int(os.getenv("SORA_VIDEO_WIDTH", "360")),
+        default=int(os.getenv("SORA_VIDEO_WIDTH", "640")),
         help="入力カメラ映像の横幅のヒント",
     )
     parser.add_argument(
         "--video-height",
         type=int,
-        default=int(os.getenv("SORA_VIDEO_HEIGHT", "640")),
+        default=int(os.getenv("SORA_VIDEO_HEIGHT", "360")),
         help="入力カメラ映像の高さのヒント",
     )
     args = parser.parse_args()

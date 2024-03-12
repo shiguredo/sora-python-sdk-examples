@@ -118,14 +118,14 @@ class SendOnly:
 
 
 def sendonly():
+    # .env 読み込み
     load_dotenv()
     parser = argparse.ArgumentParser()
 
-    # オプション引数の代わりに環境変数による指定も可能。
     # 必須引数
-    # SORA_SIGNALING_URLS 環境変数はカンマ区切りで複数指定可能
     default_signaling_urls = None
     if urls := os.getenv("SORA_SIGNALING_URLS"):
+        # SORA_SIGNALING_URLS 環境変数はカンマ区切りで複数指定可能
         default_signaling_urls = urls.split(",")
     parser.add_argument(
         "--signaling-urls",
@@ -167,13 +167,13 @@ def sendonly():
     parser.add_argument(
         "--video-width",
         type=int,
-        default=int(os.getenv("SORA_VIDEO_WIDTH", "1280")),
+        default=int(os.getenv("SORA_VIDEO_WIDTH", "640")),
         help="入力カメラ映像の横幅のヒント",
     )
     parser.add_argument(
         "--video-height",
         type=int,
-        default=int(os.getenv("SORA_VIDEO_HEIGHT", "720")),
+        default=int(os.getenv("SORA_VIDEO_HEIGHT", "360")),
         help="入力カメラ映像の高さのヒント",
     )
     parser.add_argument(
