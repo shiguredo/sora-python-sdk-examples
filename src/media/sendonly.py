@@ -151,12 +151,14 @@ def sendonly():
     # オプション引数
     parser.add_argument(
         "--video-codec-type",
-        default=os.getenv("SORA_VIDEO_CODEC_TYPE"),
+        # Sora のデフォルト値と合わせる
+        default=os.getenv("SORA_VIDEO_CODEC_TYPE", "VP9"),
         help="映像コーデックの種類",
     )
     parser.add_argument(
         "--video-bit-rate",
         type=int,
+        # Sora のデフォルト値と合わせる
         default=int(os.getenv("SORA_VIDEO_BIT_RATE", "500")),
         help="映像ビットレート",
     )
@@ -170,13 +172,13 @@ def sendonly():
     parser.add_argument(
         "--video-width",
         type=int,
-        default=os.getenv("SORA_VIDEO_WIDTH"),
+        default=int(os.getenv("SORA_VIDEO_WIDTH", "1280")),
         help="入力カメラ映像の横幅のヒント",
     )
     parser.add_argument(
         "--video-height",
         type=int,
-        default=os.getenv("SORA_VIDEO_HEIGHT"),
+        default=int(os.getenv("SORA_VIDEO_HEIGHT", "720")),
         help="入力カメラ映像の高さのヒント",
     )
     parser.add_argument(
@@ -184,6 +186,7 @@ def sendonly():
     )
     args = parser.parse_args()
 
+    # metadata は JSON 形式で指定するので一同 JSON 形式で読み込む
     metadata: Dict[str, str] = {}
     if args.metadata:
         metadata = json.loads(args.metadata)
