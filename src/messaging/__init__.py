@@ -67,10 +67,13 @@ class Messaging:
     def _on_set_offer(self, raw_message: str):
         message: Dict[str, Any] = json.loads(raw_message)
         if message["type"] == "offer":
+            # "type": "offer" に入ってくる自分の connection_id
             self._connection_id = message["connection_id"]
 
     def _on_notify(self, raw_message: str):
         message: Dict[str, Any] = json.loads(raw_message)
+        # "type": "notify" の "connection.created" で通知される connection_id が
+        # 自分の connection_id と一致する場合に接続完了とする
         if (
             message["type"] == "notify"
             and message["event_type"] == "connection.created"

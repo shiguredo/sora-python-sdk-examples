@@ -14,10 +14,10 @@ def recvonly():
 
     parser = argparse.ArgumentParser()
 
-    # 必須引数（環境変数からも指定可能）
-    # SORA_SIGNALING_URLS 環境変数はカンマ区切りで複数指定可能
+    # 必須引数
     default_signaling_urls = None
     if urls := os.getenv("SORA_SIGNALING_URLS"):
+        # カンマ区切りで複数指定可能
         default_signaling_urls = urls.split(",")
     parser.add_argument(
         "--signaling-urls",
@@ -27,6 +27,7 @@ def recvonly():
         required=not default_signaling_urls,
         help="シグナリング URL",
     )
+
     default_channel_id = os.getenv("SORA_CHANNEL_ID")
     parser.add_argument(
         "--channel-id",

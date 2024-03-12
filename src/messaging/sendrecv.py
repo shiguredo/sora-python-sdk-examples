@@ -23,8 +23,10 @@ def sendrecv():
 
     parser = argparse.ArgumentParser()
 
+    # 必須引数
     default_signaling_urls = None
     if urls := os.getenv("SORA_SIGNALING_URLS"):
+        # カンマ区切りで複数指定可能
         default_signaling_urls = urls.split(",")
     parser.add_argument(
         "--signaling-urls",
