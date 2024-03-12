@@ -77,7 +77,7 @@ class Recvonly:
             and message["event_type"] == "connection.created"
             and message["connection_id"] == self._connection_id
         ):
-            print("Sora に接続されました")
+            print("Sora に接続しました")
             self._connected.set()
 
     def _on_disconnect(self, error_code: SoraSignalingErrorCode, message: str):
