@@ -8,7 +8,6 @@ import argparse
 import json
 import math
 import os
-import traceback
 from pathlib import Path
 from threading import Event
 from typing import Dict, List, Optional
@@ -110,8 +109,6 @@ class LogoStreamer:
                     angle = self.run_one_frame(face_detection, angle, frame)
         except KeyboardInterrupt:
             pass
-        except Exception:
-            print(traceback.format_exc())
         finally:
             self.disconnect()
             self._video_capture.release()
