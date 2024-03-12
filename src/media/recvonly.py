@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Optional
 
 import cv2
 import sounddevice
-from cffi import FFI
+from _cffi_backend import FFI
 from dotenv import load_dotenv
 from numpy import ndarray
 from sora_sdk import (
