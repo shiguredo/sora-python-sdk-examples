@@ -25,8 +25,8 @@ class Recvonly:
         # python 3.8 まで対応なので list[str] ではなく List[str] にする
         signaling_urls: List[str],
         channel_id: str,
-        metadata: Dict[str, str],
-        openh264: str,
+        metadata: Optional[Dict[str, Any]],
+        openh264: Optional[str],
         output_frequency: int = 16000,
         output_channels: int = 1,
     ):
@@ -95,6 +95,7 @@ class Recvonly:
             self._video_sink = SoraVideoSink(track)
             self._video_sink.on_frame = self._on_video_frame
 
+    # TODO: 型
     def _callback(self, outdata, frames, time, status):
         if self._audio_sink is not None:
             success, data = self._audio_sink.read(frames)
@@ -168,7 +169,7 @@ def recvonly():
     )
     args = parser.parse_args()
 
-    metadata: Dict[str, str] = {}
+    metadata = None
     if args.metadata:
         metadata = json.loads(args.metadata)
 

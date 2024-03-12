@@ -16,13 +16,13 @@ class SendOnly:
         # python 3.8 まで対応なので list[str] ではなく List[str] にする
         signaling_urls: List[str],
         channel_id: str,
-        metadata: Dict[str, str],
+        metadata: Optional[Dict[str, Any]],
         camera_id: int,
         video_codec_type: str,
         video_bit_rate: int,
         video_width: Optional[int],
         video_height: Optional[int],
-        openh264: str,
+        openh264: Optional[str],
         audio_channels: int = 1,
         audio_sample_rate: int = 16000,
     ):
@@ -183,7 +183,7 @@ def sendonly():
     args = parser.parse_args()
 
     # metadata は JSON 形式で指定するので一同 JSON 形式で読み込む
-    metadata: Dict[str, str] = {}
+    metadata = None
     if args.metadata:
         metadata = json.loads(args.metadata)
 

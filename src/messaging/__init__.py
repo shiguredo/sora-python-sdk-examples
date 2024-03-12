@@ -2,7 +2,7 @@ import json
 import random
 import time
 from threading import Event
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from sora_sdk import Sora, SoraConnection, SoraSignalingErrorCode
 
@@ -14,7 +14,7 @@ class Messaging:
         signaling_urls: List[str],
         channel_id: str,
         data_channels: List[Dict[str, Any]],
-        metadata: Dict[str, Any],
+        metadata: Optional[Dict[str, Any]],
     ):
         self._data_channels = data_channels
 
