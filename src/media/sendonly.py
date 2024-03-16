@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional
 import cv2
 import sounddevice
 from dotenv import load_dotenv
+from numpy import ndarray
 from sora_sdk import Sora, SoraConnection, SoraSignalingErrorCode
 
 
@@ -93,7 +94,7 @@ class SendOnly:
         self._connected.clear()
         self._closed = True
 
-    def _callback(self, indata, frames, time, status):
+    def _callback(self, indata: ndarray, frames: int, time, status: sounddevice.CallbackFlags):
         self._audio_source.on_data(indata)
 
     def run(self):

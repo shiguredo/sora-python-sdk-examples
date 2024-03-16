@@ -7,7 +7,6 @@ from typing import Any, Dict, List, Optional
 
 import cv2
 import sounddevice
-from _cffi_backend import FFI
 from dotenv import load_dotenv
 from numpy import ndarray
 from sora_sdk import (
@@ -97,9 +96,7 @@ class Recvonly:
             self._video_sink = SoraVideoSink(track)
             self._video_sink.on_frame = self._on_video_frame
 
-    def _callback(
-        self, outdata: ndarray, frames: int, time: FFI.CData, status: sounddevice.CallbackFlags
-    ):
+    def _callback(self, outdata: ndarray, frames: int, time, status: sounddevice.CallbackFlags):
         if self._audio_sink is not None:
             success, data = self._audio_sink.read(frames)
             if success:

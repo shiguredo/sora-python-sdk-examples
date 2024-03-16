@@ -11,7 +11,7 @@ import mediapipe as mp
 import numpy as np
 from dotenv import load_dotenv
 from PIL import Image
-from sora_sdk import Sora, SoraVideoSource
+from sora_sdk import Sora, SoraSignalingErrorCode, SoraVideoSource
 
 
 class LogoStreamer:
@@ -67,7 +67,7 @@ class LogoStreamer:
     def disconnect(self):
         self._connection.disconnect()
 
-    def _on_disconnect(self, error_code, message):
+    def _on_disconnect(self, error_code: SoraSignalingErrorCode, message: str):
         print(f"Sora から切断されました: error_code='{error_code}' message='{message}'")
         self._connected.clear()
         self._closed = True
@@ -91,6 +91,7 @@ class LogoStreamer:
         self.connect()
         try:
             # 顔検出を用意する
+            # TODO: face_detection の型を調べる
             with self.mp_face_detection.FaceDetection(
                 model_selection=0, min_detection_confidence=0.5
             ) as face_detection:
@@ -107,7 +108,7 @@ class LogoStreamer:
             self.disconnect()
             self._video_capture.release()
 
-    def run_one_frame(self, face_detection, angle, frame):
+    def run_one_frame(self, face_detection, angle: int, frame: cv2.typing.MatLike):
         # 高速化の呪文
         frame.flags.writeable = False
         # mediapipe や PIL で処理できるように色の順序を変える
