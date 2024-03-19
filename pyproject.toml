@@ -1,17 +1,26 @@
 [project]
-name = "sora-python-sdk-samples"
+name = "sora-sdk-samples"
 version = "2024.1.0"
 description = "Sora Python SDK Samples"
-authors = [{ name = "Shiguredo Inc.", email = "contact+pypi@shiguredo.jp" }]
+authors = [{ name = "Shiguredo Inc." }]
 dependencies = [
     "opencv-python~=4.9.0.80",
     "opencv-python-headless~=4.9.0.80",
     "sounddevice~=0.4.6",
-    "sora_sdk>=2024.1.0",
+    "sora-sdk>=2024.1.0",
     "mediapipe~=0.10.1",
+    "python-dotenv>=1.0.1",
 ]
 readme = "README.md"
 requires-python = ">= 3.8"
+
+[project.scripts]
+media_sendonly = "media.sendonly:sendonly"
+media_recvonly = "media.recvonly:recvonly"
+messaging_sendrecv = "messaging.sendrecv:sendrecv"
+messaging_sendonly = "messaging.sendonly:sendonly"
+messaging_recvonly = "messaging.recvonly:recvonly"
+hideface_sender = "ml.hideface_sender:hideface_sender"
 
 [build-system]
 requires = ["hatchling"]
@@ -19,17 +28,13 @@ build-backend = "hatchling.build"
 
 [tool.rye]
 managed = true
-
-dev-dependencies = [
-    "ruff>=0.1.14",
-]
+dev-dependencies = ["ruff>=0.3.0", "mypy>=1.8.0"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
-# XXX: source ではない気がする
-packages = ["source"]
+packages = ["src/media", "src/messaging", "src/ml"]
 
 [tool.ruff]
 line-length = 100

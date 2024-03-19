@@ -26,7 +26,15 @@ $ rye sync
 ### サンプルコードの実行
 
 ```console
-$ rye run python recvonly/recvonly.py --signaling-urls $YOUR_SIGNALING_URL1 $YOUR_SIGNLAING_URL2 --channel-id $YOUR_CHANNEL_ID
+$ rye run media_recvonly --signaling-urls wss://1.example.com/signaling wss://2.example.com/signaling --channel-id sora
+```
+
+### コマンドラインの代わりに環境変数を利用する
+
+```console
+$ cp .env.template .env
+# .env に必要な変数を設定してください。
+$ rye run media_recvonly
 ```
 
 ## ライセンス
@@ -34,8 +42,8 @@ $ rye run python recvonly/recvonly.py --signaling-urls $YOUR_SIGNALING_URL1 $YOU
 Apache License 2.0
 
 ```
-Copyright 2023-2023, tnoho (Original Author)
-Copyright 2023-2023, Shiguredo Inc.
+Copyright 2023-2024, tnoho (Original Author)
+Copyright 2023-2024, Shiguredo Inc.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
