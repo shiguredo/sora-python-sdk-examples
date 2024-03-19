@@ -8,7 +8,7 @@ from messaging import Messaging
 
 
 def sendonly():
-    # .env を読み込む
+    # .env ファイルを読み込む
     load_dotenv()
 
     parser = argparse.ArgumentParser()

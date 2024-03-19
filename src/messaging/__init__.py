@@ -67,7 +67,7 @@ class Messaging:
     def _on_set_offer(self, raw_message: str):
         message: Dict[str, Any] = json.loads(raw_message)
         if message["type"] == "offer":
-            # "type": "offer" に入ってくる自分の connection_id
+            # "type": "offer" に入ってくる自分の connection_id を保存する
             self._connection_id = message["connection_id"]
 
     def _on_notify(self, raw_message: str):
@@ -97,5 +97,6 @@ class Messaging:
 
             if data_channel["direction"] in ["sendrecv", "sendonly"]:
                 self._sendable_data_channels.add(label)
+                # データチャネルの準備ができたのでフラグを立てる
                 self._is_data_channel_ready = True
                 break

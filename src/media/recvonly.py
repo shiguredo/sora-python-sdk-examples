@@ -49,6 +49,7 @@ class Recvonly:
         self._audio_sink: Optional[SoraAudioSink] = None
         self._video_sink: Optional[SoraVideoSink] = None
 
+        # SoraVideoFrame を格納するキュー
         self._q_out: queue.Queue = queue.Queue()
 
         self._connection.on_set_offer = self._on_set_offer
@@ -69,10 +70,13 @@ class Recvonly:
     def _on_set_offer(self, raw_message: str):
         message: Dict[str, Any] = json.loads(raw_message)
         if message["type"] == "offer":
+            # "type": "offer" に入ってくる自分の connection_id を保存する
             self._connection_id = message["connection_id"]
 
     def _on_notify(self, raw_message: str):
         message: Dict[str, Any] = json.loads(raw_message)
+        # "type": "notify" の "connection.created" で通知される connection_id が
+        # 自分の connection_id と一致する場合に接続完了とする
         if (
             message["type"] == "notify"
             and message["event_type"] == "connection.created"
@@ -87,6 +91,7 @@ class Recvonly:
         self._closed = True
 
     def _on_video_frame(self, frame: SoraVideoFrame):
+        # キューに SoraVideoFrame を入れる
         self._q_out.put(frame)
 
     def _on_track(self, track: SoraMediaTrack):
@@ -120,9 +125,11 @@ class Recvonly:
                     # Windows 環境の場合 timeout を入れておかないと Queue.get() で
                     # ブロックしたときに脱出方法がなくなる。
                     try:
+                        # キューから SoraVideoFrame を取り出す
                         frame = self._q_out.get(timeout=1)
                     except queue.Empty:
                         continue
+                    # 画像を表示する
                     cv2.imshow("frame", frame.data())
                     # これは削除してよさそう
                     if cv2.waitKey(1) & 0xFF == ord("q"):
@@ -137,7 +144,7 @@ class Recvonly:
 
 
 def recvonly():
-    # .env 読み込み
+    # .env ファイル読み込み
     load_dotenv()
     parser = argparse.ArgumentParser()
 

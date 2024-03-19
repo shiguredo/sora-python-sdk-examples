@@ -74,7 +74,8 @@ class SendOnly:
 
     def _on_notify(self, raw_message: str):
         message: Dict[str, Any] = json.loads(raw_message)
-        # 自分の connection_id の connection.created が通知されたら接続完了フラグを立てる
+        # "type": "notify" の "connection.created" で通知される connection_id が
+        # 自分の connection_id と一致する場合に接続完了とする
         if (
             message["type"] == "notify"
             and message["event_type"] == "connection.created"
@@ -85,8 +86,8 @@ class SendOnly:
 
     def _on_set_offer(self, raw_message: str):
         message: Dict[str, Any] = json.loads(raw_message)
-        # 自分の connection_id を保存する
         if message["type"] == "offer":
+            # "type": "offer" に入ってくる自分の connection_id を保存する
             self._connection_id = message["connection_id"]
 
     def _on_disconnect(self, error_code: SoraSignalingErrorCode, message: str):
@@ -98,6 +99,7 @@ class SendOnly:
         self._audio_source.on_data(indata)
 
     def run(self):
+        # 音声デバイスの入力を Sora に送信する設定
         with sounddevice.InputStream(
             samplerate=self.audio_sample_rate,
             channels=self.audio_channels,
@@ -105,9 +107,9 @@ class SendOnly:
             callback=self._callback,
         ):
             self.connect()
-
             try:
                 while self._connected.is_set():
+                    # 取得したフレームを Sora に送信する
                     success, frame = self._video_capture.read()
                     if not success:
                         continue
@@ -120,7 +122,7 @@ class SendOnly:
 
 
 def sendonly():
-    # .env 読み込み
+    # .env ファイルを読み込む
     load_dotenv()
     parser = argparse.ArgumentParser()
 

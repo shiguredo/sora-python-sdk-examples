@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional
 import cv2
 import mediapipe as mp
 import numpy as np
+from cv2.typing import MatLike
 from dotenv import load_dotenv
 from PIL import Image
 from sora_sdk import Sora, SoraSignalingErrorCode, SoraVideoSource
@@ -108,7 +109,7 @@ class LogoStreamer:
             self.disconnect()
             self._video_capture.release()
 
-    def run_one_frame(self, face_detection, angle: int, frame: cv2.typing.MatLike):
+    def run_one_frame(self, face_detection, angle: int, frame: MatLike):
         # 高速化の呪文
         frame.flags.writeable = False
         # mediapipe や PIL で処理できるように色の順序を変える
@@ -163,7 +164,7 @@ class LogoStreamer:
 
 
 def hideface_sender():
-    # .env を読み込む
+    # .env ファイルを読み込む
     load_dotenv()
 
     parser = argparse.ArgumentParser()
