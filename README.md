@@ -1,41 +1,12 @@
 # Python Sora SDK サンプル集
 
-## About Shiguredo's open source software
+## アーカイブ
 
-We will not respond to PRs or issues that have not been discussed on Discord. Also, Discord is only available in Japanese.
+将来的にこのリポジトリは削除予定です
 
-Please read https://github.com/shiguredo/oss/blob/master/README.en.md before use.
+このリポジトリはアーカイブしました。
 
-## 時雨堂のオープンソースソフトウェアについて
-
-利用前に https://github.com/shiguredo/oss をお読みください。
-
-## サンプルコードの実行方法
-
-[Rye](https://github.com/mitsuhiko/rye) というパッケージマネージャーを利用しています。
-
-Linux と macOS の場合は `curl -sSf https://rye-up.com/get | bash` でインストール可能です。
-Windows は https://rye-up.com/ の Installation Instructions を確認してください。
-
-### 依存パッケージのビルド
-
-```console
-$ rye sync
-```
-
-### サンプルコードの実行
-
-```console
-$ rye run media_recvonly --signaling-urls wss://1.example.com/signaling wss://2.example.com/signaling --channel-id sora
-```
-
-### コマンドラインの代わりに環境変数を利用する
-
-```console
-$ cp .env.template .env
-# .env に必要な変数を設定してください。
-$ rye run media_recvonly
-```
+Sora Python SDK のサンプルは Sora Python SDK のリポジトリのサンプルを利用してください。
 
 ## ライセンス
 
