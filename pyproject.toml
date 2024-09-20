@@ -17,27 +17,20 @@ dependencies = [
 readme = "README.md"
 requires-python = ">= 3.10"
 
-[project.scripts]
-media_sendonly = "media.sendonly:sendonly"
-media_recvonly = "media.recvonly:recvonly"
-messaging_sendrecv = "messaging.sendrecv:sendrecv"
-messaging_sendonly = "messaging.sendonly:sendonly"
-messaging_recvonly = "messaging.recvonly:recvonly"
-hideface_sender = "ml.hideface_sender:hideface_sender"
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-[tool.uv]
-managed = true
-dev-dependencies = ["ruff", "mypy", "pytest"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/media", "src/messaging", "src/ml"]
+packages = ["src"]
+
+[tool.uv]
+package = false
+managed = true
+dev-dependencies = ["ruff", "mypy", "pytest"]
 
 [tool.ruff]
 target-version = "py310"

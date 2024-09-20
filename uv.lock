@@ -868,7 +868,7 @@ wheels = [
 [[package]]
 name = "sora-sdk-examples"
 version = "2024.1.0"
-source = { editable = "." }
+source = { virtual = "." }
 dependencies = [
     { name = "mediapipe" },
     { name = "numpy" },

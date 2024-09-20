@@ -1,14 +1,32 @@
-# Python Sora SDK サンプル集
+# Python Sora SDK Examples
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-## アーカイブ
+## セットアップ
 
-将来的にこのリポジトリは削除予定です
+[uv](https://docs.astral.sh/uv/) というパッケージマネージャーを利用しています。
 
-このリポジトリはアーカイブしました。
+インストール方法は <https://rye.astral.sh/guide/installation/> をご確認ください。
 
-Sora Python SDK のサンプルは Sora Python SDK のリポジトリのサンプルを利用してください。
+### 依存パッケージのビルド
+
+```bash
+uv sync
+```
+
+## サンプルコードの実行
+
+`.env.template` をコピーして `.env` に必要な変数を設定してください。
+
+```bash
+cp .env.template .env
+```
+
+例えば `media_sendonly.py` を実行する場合は以下のコマンドを実行してください。
+
+```bash
+uv run python3 src/media_sendonly.py
+```
 
 ## ライセンス
 
