@@ -1,18 +1,21 @@
 [project]
-name = "sora-sdk-samples"
+name = "sora-sdk-examples"
 version = "2024.1.0"
-description = "Sora Python SDK Samples"
+description = "Sora Python SDK Examples"
 authors = [{ name = "Shiguredo Inc." }]
+license = { file = "LICENSE" }
 dependencies = [
-    "opencv-python~=4.9.0.80",
-    "opencv-python-headless~=4.9.0.80",
-    "sounddevice~=0.4.6",
-    "sora-sdk>=2024.1.0",
-    "mediapipe~=0.10.1",
+    "opencv-python>=4.10.0.84",
+    "opencv-python-headless>=4.10.0.84",
+    "sounddevice>=0.4.7",
+    "sora-sdk~=2024.3.0",
+    "mediapipe>=0.10.14",
     "python-dotenv>=1.0.1",
+    "numpy>=2.0.1",
+    "pillow>=10.4.0",
 ]
 readme = "README.md"
-requires-python = ">= 3.8"
+requires-python = ">= 3.10"
 
 [project.scripts]
 media_sendonly = "media.sendonly:sendonly"
@@ -26,9 +29,9 @@ hideface_sender = "ml.hideface_sender:hideface_sender"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.rye]
+[tool.uv]
 managed = true
-dev-dependencies = ["ruff>=0.3.0", "mypy>=1.8.0"]
+dev-dependencies = ["ruff", "mypy", "pytest"]
 
 [tool.hatch.metadata]
 allow-direct-references = true
@@ -37,5 +40,5 @@ allow-direct-references = true
 packages = ["src/media", "src/messaging", "src/ml"]
 
 [tool.ruff]
+target-version = "py310"
 line-length = 100
-indent-width = 4
