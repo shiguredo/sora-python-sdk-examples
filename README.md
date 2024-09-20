@@ -2,6 +2,10 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
+## 概要
+
+Sora Python SDK のサンプルコードをまとめたリポジトリです。
+
 ## セットアップ
 
 [uv](https://docs.astral.sh/uv/) というパッケージマネージャーを利用しています。
@@ -32,7 +36,7 @@ uv run python3 src/media_sendonly.py
 
 Apache License 2.0
 
-```
+```text
 Copyright 2023-2024, tnoho (Original Author)
 Copyright 2023-2024, Shiguredo Inc.
 
