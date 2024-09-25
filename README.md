@@ -10,7 +10,7 @@ Sora Python SDK のサンプルコードをまとめたリポジトリです。
 
 [uv](https://docs.astral.sh/uv/) というパッケージマネージャーを利用しています。
 
-インストール方法は <https://rye.astral.sh/guide/installation/> をご確認ください。
+インストール方法は <https://docs.astral.sh/uv/getting-started/installation/> をご確認ください。
 
 ### 依存パッケージのビルド
 
