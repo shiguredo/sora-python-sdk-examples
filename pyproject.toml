@@ -31,6 +31,7 @@ packages = ["src"]
 package = false
 managed = true
 dev-dependencies = ["ruff", "mypy", "pytest"]
+python-preference = "only-managed"
 
 [tool.ruff]
 target-version = "py310"
