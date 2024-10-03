@@ -43,7 +43,7 @@ jobs:
       - uses: astral-sh/setup-uv@v3
       - run: uv python pin ${{ matrix.python_version }}
       - run: uv sync
-      - run: uv run pytest tests -s
+      - run: uv run pytest -s
 
   e2e_test_macos:
     strategy:
@@ -70,7 +70,7 @@ jobs:
       - uses: astral-sh/setup-uv@v3
       - run: uv python pin ${{ matrix.python_version }}
       - run: uv sync
-      - run: uv run pytest tests -s
+      - run: uv run pytest -s
 
   e2e_test_windows:
     strategy:
@@ -100,7 +100,7 @@ jobs:
       - uses: astral-sh/setup-uv@v3
       - run: uv python pin ${{ matrix.python_version }}
       - run: uv sync
-      - run: uv run pytest tests -s
+      - run: uv run pytest -s
 
   slack_notify_succeeded:
     needs: [e2e_test_ubuntu, e2e_test_macos, e2e_test_windows]
