@@ -32,6 +32,18 @@ cp .env.template .env
 uv run python3 src/media_sendonly.py
 ```
 
+## E2E テストの実行
+
+`.env.template` をコピーして `.env` に必要な変数を設定してください。
+
+```bash
+cp .env.template .env
+```
+
+```bash
+uv run pytest
+```
+
 ## ライセンス
 
 Apache License 2.0
