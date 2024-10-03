@@ -37,6 +37,5 @@ python-preference = "only-managed"
 target-version = "py310"
 line-length = 100
 
-
 [tool.pytest.ini_options]
 pythonpath = "src/"
