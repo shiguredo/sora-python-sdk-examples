@@ -41,7 +41,7 @@ cp .env.template .env
 ```
 
 ```bash
-uv run pytest
+uv run pytest tests
 ```
 
 ## ライセンス

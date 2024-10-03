@@ -2,7 +2,7 @@ import sys
 import time
 import uuid
 
-from src.media_recvonly import Recvonly
+from media_recvonly import Recvonly
 
 
 def test_recvonly(setup) -> None:
