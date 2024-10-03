@@ -1,10 +1,14 @@
-# Python Sora SDK サンプル
+# Sora Python SDK サンプルコード
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 ## 概要
 
 Sora Python SDK のサンプルコードをまとめたリポジトリです。
+
+- Sora Python SDK の最新の安定版を利用しています
+- PyPI に登録されている Sora Python SDK を利用しています
+- サンプルコードを利用した E2E テストを実行できます
 
 ## セットアップ
 
