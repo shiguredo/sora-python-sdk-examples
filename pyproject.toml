@@ -1,6 +1,6 @@
 [project]
 name = "sora-sdk-examples"
-version = "2024.1.0"
+version = "2024.3.0"
 description = "Sora Python SDK Examples"
 authors = [{ name = "Shiguredo Inc." }]
 license = { file = "LICENSE" }
@@ -30,8 +30,8 @@ packages = ["src"]
 [tool.uv]
 package = false
 managed = true
-dev-dependencies = ["ruff", "mypy", "pytest"]
 python-preference = "only-managed"
+dev-dependencies = ["ruff", "mypy", "pytest"]
 
 [tool.ruff]
 target-version = "py310"
