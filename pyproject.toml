@@ -1,11 +1,11 @@
 [project]
 name = "sora-sdk-examples"
-version = "2024.3.0"
+version = "2024.4.0"
 description = "Sora Python SDK Examples"
 authors = [{ name = "Shiguredo Inc." }]
 license = { file = "LICENSE" }
 dependencies = [
-    "sora-sdk~=2024.3",
+    "sora-sdk~=2024.4.dev18",
     "opencv-python>=4.10",
     "opencv-python-headless>=4.10",
     "sounddevice>=0.5",
