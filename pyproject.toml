@@ -5,13 +5,13 @@ description = "Sora Python SDK Examples"
 authors = [{ name = "Shiguredo Inc." }]
 license = { file = "LICENSE" }
 dependencies = [
-    "sora-sdk~=2024.4.dev18",
+    "sora-sdk~=2024.4.dev19",
     "opencv-python>=4.10",
     "opencv-python-headless>=4.10",
     "sounddevice>=0.5",
     "mediapipe>=0.10.14",
     "python-dotenv>=1.0",
-    "numpy>=2.0",
+    "numpy>=2.1",
     "pillow>=10.4",
 ]
 readme = "README.md"
