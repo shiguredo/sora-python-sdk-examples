@@ -10,3 +10,8 @@
   - バグ修正
 
 ## develop
+
+### misc
+
+- [CHANGE] GitHub Actions の ubuntu-latest を ubuntu-24.04 に変更
+  - @voluntas
