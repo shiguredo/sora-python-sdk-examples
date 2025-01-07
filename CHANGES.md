@@ -15,3 +15,5 @@
 
 - [CHANGE] GitHub Actions の ubuntu-latest を ubuntu-24.04 に変更
   - @voluntas
+- [CHANGE] E2E テスト成功時に slack 通知をしないようにする
+  - @voluntas
