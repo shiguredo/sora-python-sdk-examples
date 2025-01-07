@@ -17,5 +17,5 @@
   - @voluntas
 - [CHANGE] E2E テスト成功時に slack 通知をしないようにする
   - @voluntas
-- [CHANGE] E2E テストに Python 3.13 を追加
+- [ADD] E2E テストに Python 3.13 を追加
   - @voluntas
