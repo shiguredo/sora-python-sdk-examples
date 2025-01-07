@@ -898,27 +898,22 @@ wheels = [
 
 [[package]]
 name = "sora-sdk"
-version = "2024.4.0.dev45"
+version = "2025.1.0.dev1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/9b/03/a339716bd4343774c5e9442f7b7410c8b36a39497589b601e854c00fd601/sora_sdk-2024.4.0.dev45.tar.gz", hash = "sha256:2e08abdedeb5d46cb857318de15c514caf51300a3a784501aa0351aeffd11e44", size = 6480693 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/13/1f/749b7ebfe29c7678ecca7a9d37b509a471a9a3cc247119ab1ee0af26c076/sora_sdk-2024.4.0.dev45-cp310-cp310-macosx_14_0_arm64.whl", hash = "sha256:60a0882ed2b65af7ac6ef7e9b45d252c06d5eb0c2fe8b4a0dbd239480e308b5f", size = 6530130 },
-    { url = "https://files.pythonhosted.org/packages/a3/cf/679317a61325b0cc785a51edc447b64a35e0f3af5429826cf754a9bc5e52/sora_sdk-2024.4.0.dev45-cp310-cp310-macosx_15_0_arm64.whl", hash = "sha256:b5761a953c76b01a93800e8b87974be9f8222cf35607017e1257172e4413c79a", size = 6451620 },
-    { url = "https://files.pythonhosted.org/packages/84/d1/eda2981444bbf915413cc795d496054874058c4ee3949a4fc2825cd487ac/sora_sdk-2024.4.0.dev45-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:f5b1cf35358a00b6470e75d517aadb03b942f2caf72b7a86d2af6b5c4c1fe4c8", size = 8535362 },
-    { url = "https://files.pythonhosted.org/packages/cd/41/ca2b37602c70f177f5b603100003ef6bb309c0b5b494135a5abe06978b0f/sora_sdk-2024.4.0.dev45-cp310-cp310-win_amd64.whl", hash = "sha256:7e09257b2ed0b30bdb8413137a67f35ea0dbe61072e25dc5be357c8c57c1b6a0", size = 7844194 },
-    { url = "https://files.pythonhosted.org/packages/01/b4/151db86f2b5095d9a620885488371243d4196b4d4bbf249926b4f4d8a2f3/sora_sdk-2024.4.0.dev45-cp311-cp311-macosx_14_0_arm64.whl", hash = "sha256:d10d598a44eafca7a15db3c5b59b5c29e1bda32fd8e579c96e929c69b3eccce3", size = 6530615 },
-    { url = "https://files.pythonhosted.org/packages/9a/38/1d1d01053b23e90770abe6d7605a1d0c1409430565d241877b4adad751b6/sora_sdk-2024.4.0.dev45-cp311-cp311-macosx_15_0_arm64.whl", hash = "sha256:03c1f05737a9b937ab12ca1a7f26c95d03cf64de2b41697de25b9220a3227b3c", size = 6451766 },
-    { url = "https://files.pythonhosted.org/packages/8b/cb/181b2e0ae960319250c3f86aec40a9212b17d521279b4477d66c94328356/sora_sdk-2024.4.0.dev45-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:bb7793bdd3f8e5ec3e8f0be7c9195f38b237ec36a8a7161871f98dda67c3c790", size = 8535444 },
-    { url = "https://files.pythonhosted.org/packages/21/e0/8d1e5d728c807bf16ed8674eaac74eb059d276d96ba63b66fc88e9ed5095/sora_sdk-2024.4.0.dev45-cp311-cp311-win_amd64.whl", hash = "sha256:59f3139c08bf620ec770dc8e06e23ae3a9b0600f2fdce7ecf8b77ab5ea18980d", size = 7844448 },
-    { url = "https://files.pythonhosted.org/packages/a5/cc/c177c70d5cce444ca17a0cba023fd8c71e3bbd797714be7f8156ea3642f2/sora_sdk-2024.4.0.dev45-cp312-cp312-macosx_14_0_arm64.whl", hash = "sha256:bc1b3f9a5bda313c5552a975220818e7a26c46a5c2dbeb61c43b2f14c99a5ba3", size = 6530257 },
-    { url = "https://files.pythonhosted.org/packages/b8/ee/3464529d17f188d502cc328aa403fafb06c223014f356c5894aa9815ddf1/sora_sdk-2024.4.0.dev45-cp312-cp312-macosx_15_0_arm64.whl", hash = "sha256:d801ff4fc9dafebeee18f65ef425c94665df08cf5af1e66e6d4be6140ea20c13", size = 6452176 },
-    { url = "https://files.pythonhosted.org/packages/8f/87/0dc27792ae852536da5ec00d5deb033afd0347efb49a921e7bd46c788bec/sora_sdk-2024.4.0.dev45-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:d7d0c82e974fc556ead35833a2f8777d9400525bfe5fde3155cdb574c8d01857", size = 7131706 },
-    { url = "https://files.pythonhosted.org/packages/1c/32/0f58dc4ccf76f29cd5c029805085312e24e0169d5d8db6eaac567dde2e30/sora_sdk-2024.4.0.dev45-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:c0ad86c633d71fb39aa3c117e0dc6fcd9c6926772bdbb56ab1c9c345e945ec0d", size = 8536502 },
-    { url = "https://files.pythonhosted.org/packages/0f/8f/e1bf41ecbd9c4d8befdfb649e94570a88e40c081d0d5ab5103bfbf3c2334/sora_sdk-2024.4.0.dev45-cp312-cp312-win_amd64.whl", hash = "sha256:12f1a0a18ab85a5574b5956af0abfeff474dd058955e82b554aa8673b7cc791a", size = 7844448 },
-    { url = "https://files.pythonhosted.org/packages/3a/5c/48a44d1663821ffdc4806ad2ed5a4d4b01c933b910dea0526a030997415a/sora_sdk-2024.4.0.dev45-cp313-cp313-macosx_14_0_arm64.whl", hash = "sha256:49668a801d39a5912a56f0dc7beec57e9633849889f05ffc9c4d6f6d8e1ef91c", size = 6530263 },
-    { url = "https://files.pythonhosted.org/packages/29/9e/c44c35b100f320b829c99b66d23f6c9f896dc9c2e02ab31d56e82942cf39/sora_sdk-2024.4.0.dev45-cp313-cp313-macosx_15_0_arm64.whl", hash = "sha256:fa81bdc6b635140e3a1b1e5f2a180fce1f95d1eb6fb8d07f97017b1c5f09e0dc", size = 6452064 },
-    { url = "https://files.pythonhosted.org/packages/bb/75/6c6570cf34004907918947cd5fb24dd5d87c0543ea1d7c59d69e2ce585e5/sora_sdk-2024.4.0.dev45-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d00ecac5963a8c76e0e623acaccd5aca13d1bf0cb856814eacebf27caf6ee757", size = 8536603 },
-    { url = "https://files.pythonhosted.org/packages/76/7f/3fbcf6b4c68509e0e158b5a78dc882fea9fca4becf69a2ee2312745e3917/sora_sdk-2024.4.0.dev45-cp313-cp313-win_amd64.whl", hash = "sha256:d7243bf8924ed141bb4a50092d4088b49d51516f04ba50c87fd70bb5654e2387", size = 7844470 },
+    { url = "https://files.pythonhosted.org/packages/32/8c/7b1b3f0fbae2867baad71aa2a0d85bc5ae202ba6ce105efb97efd5115269/sora_sdk-2025.1.0.dev1-cp310-cp310-macosx_15_0_arm64.whl", hash = "sha256:02e2f93706e202c11c4ca4f1a44af5f6dbe74030a5872ffe4d7490e0f75093d0", size = 6451628 },
+    { url = "https://files.pythonhosted.org/packages/a1/8e/1532adc90921dcacbd8c2aca17fde6ab9b81b1825752a4231d8d6fa3a818/sora_sdk-2025.1.0.dev1-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:102de771f84bd008504f295704be346f6f5c00936a07186b33d0ff60c94c3239", size = 8535346 },
+    { url = "https://files.pythonhosted.org/packages/73/d4/2f56054fa28ed226823cda4000a0a1b8685951088e284594081ad5398f12/sora_sdk-2025.1.0.dev1-cp310-cp310-win_amd64.whl", hash = "sha256:3d227c8c793be7087dd6d4b950e7f429434ebbdf252fa03272a7d6ad3faf15f4", size = 7844209 },
+    { url = "https://files.pythonhosted.org/packages/ae/eb/98886b53223f17b3b248e14bda8c1d234c23b1000e44827aaf0500a3c224/sora_sdk-2025.1.0.dev1-cp311-cp311-macosx_14_0_arm64.whl", hash = "sha256:f523a03712dc684b0d2edd50f240af6630fa6e367985612ce8d6729fef95cbfe", size = 6530587 },
+    { url = "https://files.pythonhosted.org/packages/6a/6a/8abaeb5e31ca261fa04d9dc0870d0f318fd2dc6422b79497194b5d67b094/sora_sdk-2025.1.0.dev1-cp311-cp311-macosx_15_0_arm64.whl", hash = "sha256:c62c5a902267cb0b226019c0c3880c348b4a43c32f838acd5d973a25a9a0a96d", size = 6451815 },
+    { url = "https://files.pythonhosted.org/packages/d1/6a/7618549d3c61ddb9e132fb6738e52395b01d5f3197779dcf5d27cfd2f4b5/sora_sdk-2025.1.0.dev1-cp312-cp312-macosx_14_0_arm64.whl", hash = "sha256:71e3f75116669ca6142c6a53a1f4745097dd30ee8fa23bdcefe8bf5d794c02b3", size = 6530235 },
+    { url = "https://files.pythonhosted.org/packages/6b/cc/cc3cef4c42e547c885c5935b6ddb154807b1e4d5520936c0edd31fe5c6c3/sora_sdk-2025.1.0.dev1-cp312-cp312-macosx_15_0_arm64.whl", hash = "sha256:17c4cdfcdee8fbc16940f4d09050de23246b4c6652cc2c76d1f72adc9ce3e19f", size = 6452112 },
+    { url = "https://files.pythonhosted.org/packages/89/4d/318602a24a3264dbb68cb23a237ca75dccaa77fafba6d082d795066c77f5/sora_sdk-2025.1.0.dev1-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:69c5c79efe9e7d700aaecb84fdb3141bcbeff58501f469fd8b302c836168c9da", size = 7131728 },
+    { url = "https://files.pythonhosted.org/packages/20/9d/cd493605b077e9102f1709219521596da61ea0c7642d423e0ad67bb215d1/sora_sdk-2025.1.0.dev1-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:9e49f1520e2a80a2024627ccce55d60f3725cd66a6bc6e6c4f951233985ba592", size = 8536488 },
+    { url = "https://files.pythonhosted.org/packages/34/0b/a95a4b8d66347de8f17d2bf5044a1c53238affb85550feceecc79af04975/sora_sdk-2025.1.0.dev1-cp312-cp312-win_amd64.whl", hash = "sha256:90e19bc95eda7b6575e63a42e717ffe2e7d54f70f7fb2923e8a379c1dcec1314", size = 7844397 },
+    { url = "https://files.pythonhosted.org/packages/ea/84/6f9b021abeb8e0ddb8ff259fce08360e3c68ec153567f39d90cccba86adb/sora_sdk-2025.1.0.dev1-cp313-cp313-macosx_14_0_arm64.whl", hash = "sha256:e0e3e6998fcbd16156074683f2a1f72f3c4668cae6f49b1def40a422bf43789f", size = 6530235 },
+    { url = "https://files.pythonhosted.org/packages/37/54/bb8aafa5e6567ea9b43aa052444babdda56e434902f2cb904d3039877799/sora_sdk-2025.1.0.dev1-cp313-cp313-macosx_15_0_arm64.whl", hash = "sha256:a5a9e843fca60d9e88e9af90d86c32b6e6bdb7cf8bbd7e54346884b1a5fa592f", size = 6452035 },
+    { url = "https://files.pythonhosted.org/packages/62/51/de90ff36ea9fed21521de538a684449d2d301660db70b3e5070a3bfe15f4/sora_sdk-2025.1.0.dev1-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:299a4f375004fa24e5adbef4cf91149040c6158c969b6a0c25cffd15f8ef8357", size = 8536587 },
 ]
 
 [[package]]
@@ -951,7 +946,7 @@ requires-dist = [
     { name = "opencv-python-headless", specifier = ">=4.10" },
     { name = "pillow", specifier = ">=10.4" },
     { name = "python-dotenv", specifier = ">=1.0" },
-    { name = "sora-sdk", specifier = "~=2024.4.0.dev45" },
+    { name = "sora-sdk", specifier = "~=2025.1.0.dev1" },
     { name = "sounddevice", specifier = ">=0.5" },
 ]
 
