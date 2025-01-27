@@ -945,9 +945,9 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "mediapipe", specifier = ">=0.10.14" },
-    { name = "numpy", specifier = ">=2.0" },
-    { name = "opencv-python", specifier = ">=4.10" },
-    { name = "opencv-python-headless", specifier = ">=4.10" },
+    { name = "numpy", specifier = ">=2.2" },
+    { name = "opencv-python", specifier = ">=4.11" },
+    { name = "opencv-python-headless", specifier = ">=4.11" },
     { name = "pillow", specifier = ">=10.4" },
     { name = "python-dotenv", specifier = ">=1.0" },
     { name = "sora-sdk", specifier = "~=2025.1.0.dev5" },

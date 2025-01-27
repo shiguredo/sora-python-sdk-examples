@@ -6,12 +6,12 @@ authors = [{ name = "Shiguredo Inc." }]
 license = { file = "LICENSE" }
 dependencies = [
     "sora-sdk~=2025.1.0.dev5",
-    "opencv-python>=4.10",
-    "opencv-python-headless>=4.10",
+    "opencv-python>=4.11",
+    "opencv-python-headless>=4.11",
     "sounddevice>=0.5",
     "mediapipe>=0.10.14",
     "python-dotenv>=1.0",
-    "numpy>=2.0",
+    "numpy>=2.2",
     "pillow>=10.4",
 ]
 readme = "README.md"
