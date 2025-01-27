@@ -48,6 +48,38 @@ jobs:
       - run: uv sync
       - run: uv run pytest -s
 
+  e2e_test_ubuntu_arm:
+    strategy:
+      matrix:
+        # arm64 は Ubuntu-24.04 と Python 3.12 のみ対応
+        python_version: ["3.12"]
+        os: ["ubuntu-24.04-arm"]
+    runs-on: ${{ matrix.os}}
+    timeout-minutes: 15
+    if: >-
+      ${{
+        contains(github.event.head_commit.message, '[e2e]') ||
+        contains(github.ref, 'feature/e2e-test') ||
+        github.event_name == 'schedule'
+      }}
+    steps:
+      - uses: actions/checkout@v4
+      # libx11-dev は Ubuntu 24.04 の時に必要になる模様
+      - run: |
+          sudo apt-get update
+          sudo apt-get -y install libva2 libdrm2 libva-dev libdrm-dev libx11-dev portaudio19-dev
+      - name: Download openh264
+        run: |
+          curl -LO http://ciscobinary.openh264.org/libopenh264-${{ env.OPENH264_VERSION }}-linux-arm64.7.so.bz2
+          bzip2 -d libopenh264-${{ env.OPENH264_VERSION }}-linux-arm64.7.so.bz2
+          mv libopenh264-${{ env.OPENH264_VERSION }}-linux-arm64.7.so libopenh264.so
+          echo "OPENH264_PATH=$(pwd)/libopenh264.so" >> $GITHUB_ENV
+      - uses: astral-sh/setup-uv@v3
+      - run: uv python pin ${{ matrix.python_version }}
+      - run: uv sync
+      - run: uv run pytest -s
+
+
   e2e_test_macos:
     strategy:
       matrix:
@@ -110,7 +142,7 @@ jobs:
       - run: uv run pytest -s
 
   # slack_notify_succeeded:
-  #   needs: [e2e_test_ubuntu, e2e_test_macos, e2e_test_windows]
+  #   needs: [e2e_test_ubuntu, e2e_test_ubuntu_arm, e2e_test_macos, e2e_test_windows]
   #   runs-on: ubuntu-24.04
   #   if: success()
   #   steps:
@@ -124,7 +156,7 @@ jobs:
   #         SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
 
   slack_notify_failed:
-    needs: [e2e_test_ubuntu, e2e_test_macos, e2e_test_windows]
+    needs: [e2e_test_ubuntu, e2e_test_ubuntu_arm, e2e_test_macos, e2e_test_windows]
     runs-on: ubuntu-24.04
     if: failure()
     steps:
