@@ -25,12 +25,6 @@ jobs:
         os: ["ubuntu-22.04", "ubuntu-24.04"]
     runs-on: ${{ matrix.os}}
     timeout-minutes: 15
-    if: >-
-      ${{
-        contains(github.event.head_commit.message, '[e2e]') ||
-        contains(github.ref, 'feature/e2e-test') ||
-        github.event_name == 'schedule'
-      }}
     steps:
       - uses: actions/checkout@v4
       # libx11-dev は Ubuntu 24.04 の時に必要になる模様
@@ -56,12 +50,6 @@ jobs:
         os: ["ubuntu-24.04-arm"]
     runs-on: ${{ matrix.os}}
     timeout-minutes: 15
-    if: >-
-      ${{
-        contains(github.event.head_commit.message, '[e2e]') ||
-        contains(github.ref, 'feature/e2e-test') ||
-        github.event_name == 'schedule'
-      }}
     steps:
       - uses: actions/checkout@v4
       # libx11-dev は Ubuntu 24.04 の時に必要になる模様
@@ -79,7 +67,6 @@ jobs:
       - run: uv sync
       - run: uv run pytest -s
 
-
   e2e_test_macos:
     strategy:
       matrix:
@@ -90,12 +77,6 @@ jobs:
         os: ["macos-14", "macos-15"]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
-    if: >-
-      ${{
-        contains(github.event.head_commit.message, '[e2e]') ||
-        contains(github.ref, 'feature/e2e-test') ||
-        github.event_name == 'schedule'
-      }}
     steps:
       - uses: actions/checkout@v4
       - name: Download openh264
@@ -120,12 +101,6 @@ jobs:
     env:
       # Python を強制的に UTF-8 で利用するおまじない
       PYTHONUTF8: 1
-    if: >-
-      ${{
-        contains(github.event.head_commit.message, '[e2e]') ||
-        contains(github.ref, 'feature/e2e-test') ||
-        github.event_name == 'schedule'
-      }}
     steps:
       - uses: actions/checkout@v4
       - name: Download openh264
