@@ -15,6 +15,9 @@ from sora_sdk import (
     Sora,
     SoraConnection,
     SoraSignalingErrorCode,
+    SoraVideoCodecImplementation,
+    SoraVideoCodecPreference,
+    SoraVideoCodecType,
 )
 
 
@@ -63,7 +66,35 @@ class Sendonly:
         self._audio_channels: int = audio_channels
         self._audio_sample_rate: int = audio_sample_rate
 
-        self._sora: Sora = Sora(openh264=openh264_path, use_hardware_encoder=use_hwa)
+        # capabilities = get_video_codec_capability(openh264=openh264_path)
+
+        self._sora: Sora = Sora(
+            video_codec_preference=SoraVideoCodecPreference(
+                codecs=[
+                    SoraVideoCodecPreference.Codec(
+                        type=SoraVideoCodecType.VP8,
+                        decoder=SoraVideoCodecImplementation.INTERNAL,
+                        encoder=SoraVideoCodecImplementation.INTERNAL,
+                    ),
+                    SoraVideoCodecPreference.Codec(
+                        type=SoraVideoCodecType.VP9,
+                        decoder=SoraVideoCodecImplementation.INTERNAL,
+                        encoder=SoraVideoCodecImplementation.INTERNAL,
+                    ),
+                    SoraVideoCodecPreference.Codec(
+                        type=SoraVideoCodecType.AV1,
+                        decoder=SoraVideoCodecImplementation.INTERNAL,
+                        encoder=SoraVideoCodecImplementation.INTERNAL,
+                    ),
+                    # SoraVideoCodecPreference.Codec(
+                    #     type=SoraVideoCodecType.H264,
+                    #     decoder=SoraVideoCodecImplementation.CISCO_OPENH264,
+                    #     encoder=SoraVideoCodecImplementation.CISCO_OPENH264,
+                    # ),
+                ]
+            ),
+            openh264=openh264_path,
+        )
 
         self._fake_audio_thread: Optional[threading.Thread] = None
         self._fake_video_thread: Optional[threading.Thread] = None
@@ -117,9 +148,9 @@ class Sendonly:
             self._fake_video_thread = threading.Thread(target=self._fake_video_loop, daemon=True)
             self._fake_video_thread.start()
 
-        assert self._connected.wait(
-            self._default_connection_timeout_s
-        ), "Could not connect to Sora."
+        assert self._connected.wait(self._default_connection_timeout_s), (
+            "Could not connect to Sora."
+        )
 
     def disconnect(self) -> None:
         """Sora から切断します。"""
