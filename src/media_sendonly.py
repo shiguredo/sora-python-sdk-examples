@@ -15,10 +15,10 @@ from sora_sdk import (
     Sora,
     SoraConnection,
     SoraSignalingErrorCode,
-    SoraVideoCodecImplementation,
     SoraVideoCodecPreference,
-    SoraVideoCodecType,
 )
+
+from misc import get_video_codec_preference
 
 
 class Sendonly:
@@ -40,7 +40,7 @@ class Sendonly:
         video_bit_rate: Optional[int] = None,
         data_channel_signaling: Optional[bool] = None,
         openh264_path: Optional[str] = None,
-        use_hwa: bool = False,
+        video_codec_preference: Optional[SoraVideoCodecPreference] = None,
         audio_channels: int = 1,
         audio_sample_rate: int = 16000,
         video_capture: Optional[cv2.VideoCapture] = None,
@@ -66,33 +66,8 @@ class Sendonly:
         self._audio_channels: int = audio_channels
         self._audio_sample_rate: int = audio_sample_rate
 
-        # capabilities = get_video_codec_capability(openh264=openh264_path)
-
         self._sora: Sora = Sora(
-            video_codec_preference=SoraVideoCodecPreference(
-                codecs=[
-                    SoraVideoCodecPreference.Codec(
-                        type=SoraVideoCodecType.VP8,
-                        decoder=SoraVideoCodecImplementation.INTERNAL,
-                        encoder=SoraVideoCodecImplementation.INTERNAL,
-                    ),
-                    SoraVideoCodecPreference.Codec(
-                        type=SoraVideoCodecType.VP9,
-                        decoder=SoraVideoCodecImplementation.INTERNAL,
-                        encoder=SoraVideoCodecImplementation.INTERNAL,
-                    ),
-                    SoraVideoCodecPreference.Codec(
-                        type=SoraVideoCodecType.AV1,
-                        decoder=SoraVideoCodecImplementation.INTERNAL,
-                        encoder=SoraVideoCodecImplementation.INTERNAL,
-                    ),
-                    # SoraVideoCodecPreference.Codec(
-                    #     type=SoraVideoCodecType.H264,
-                    #     decoder=SoraVideoCodecImplementation.CISCO_OPENH264,
-                    #     encoder=SoraVideoCodecImplementation.CISCO_OPENH264,
-                    # ),
-                ]
-            ),
+            video_codec_preference=video_codec_preference,
             openh264=openh264_path,
         )
 
@@ -349,7 +324,7 @@ def sendonly() -> None:
 
     openh264_path = os.getenv("OPENH264_PATH")
 
-    use_hwa = bool(os.getenv("USE_HWA", "True"))
+    video_codec_preference = get_video_codec_preference(openh264_path)
 
     sendonly = Sendonly(
         signaling_urls,
@@ -358,7 +333,7 @@ def sendonly() -> None:
         video_codec_type=video_codec_type,
         video_bit_rate=video_bit_rate,
         openh264_path=openh264_path,
-        use_hwa=use_hwa,
+        video_codec_preference=video_codec_preference,
         video_capture=video_capture,
     )
     sendonly.run()

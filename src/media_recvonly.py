@@ -14,9 +14,12 @@ from sora_sdk import (
     SoraConnection,
     SoraMediaTrack,
     SoraSignalingErrorCode,
+    SoraVideoCodecPreference,
     SoraVideoFrame,
     SoraVideoSink,
 )
+
+from misc import get_video_codec_preference
 
 
 class Recvonly:
@@ -29,7 +32,7 @@ class Recvonly:
         metadata: Optional[dict[str, Any]] = None,
         data_channel_signaling: Optional[bool] = None,
         openh264_path: Optional[str] = None,
-        use_hwa: Optional[bool] = False,
+        video_codec_preference: Optional[SoraVideoCodecPreference] = None,
         output_frequency: int = 16000,
         output_channels: int = 1,
     ):
@@ -52,7 +55,9 @@ class Recvonly:
         self._output_frequency: int = output_frequency
         self._output_channels: int = output_channels
 
-        self._sora: Sora = Sora(openh264=openh264_path, use_hardware_encoder=use_hwa)
+        self._sora: Sora = Sora(
+            openh264=openh264_path, video_codec_preference=video_codec_preference
+        )
         self._connection: SoraConnection = self._sora.create_connection(
             signaling_urls=signaling_urls,
             role="recvonly",
@@ -86,9 +91,9 @@ class Recvonly:
         """
         self._connection.connect()
 
-        assert self._connected.wait(
-            self._default_connection_timeout_s
-        ), "Could not connect to Sora."
+        assert self._connected.wait(self._default_connection_timeout_s), (
+            "Could not connect to Sora."
+        )
 
     def disconnect(self) -> None:
         """Sora から切断します。"""
@@ -240,10 +245,13 @@ def recvonly() -> None:
 
     openh264_path = os.getenv("OPENH264_PATH")
 
-    use_hwa = bool(os.getenv("USE_HWA", "True"))
+    video_codec_preference = get_video_codec_preference(openh264_path)
 
     recvonly = Recvonly(
-        signaling_urls, channel_id, metadata=metadata, openh264_path=openh264_path, use_hwa=use_hwa
+        signaling_urls,
+        channel_id,
+        metadata=metadata,
+        video_codec_preference=video_codec_preference,
     )
     recvonly.run()
 
