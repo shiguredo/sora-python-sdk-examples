@@ -13,7 +13,7 @@ env:
   TEST_SIGNALING_URLS: ${{ secrets.TEST_SIGNALING_URLS }}
   TEST_CHANNEL_ID_PREFIX: ${{ secrets.TEST_CHANNEL_ID_PREFIX }}
   TEST_SECRET_KEY: ${{ secrets.TEST_SECRET_KEY }}
-  OPENH264_VERSION: 2.5.0
+  OPENH264_VERSION: 2.6.0
 
 jobs:
   e2e_test_ubuntu:
@@ -33,9 +33,9 @@ jobs:
           sudo apt-get -y install libva2 libdrm2 libva-dev libdrm-dev libx11-dev portaudio19-dev
       - name: Download openh264
         run: |
-          curl -LO http://ciscobinary.openh264.org/libopenh264-${{ env.OPENH264_VERSION }}-linux64.7.so.bz2
-          bzip2 -d libopenh264-${{ env.OPENH264_VERSION }}-linux64.7.so.bz2
-          mv libopenh264-${{ env.OPENH264_VERSION }}-linux64.7.so libopenh264.so
+          curl -LO http://ciscobinary.openh264.org/libopenh264-${{ env.OPENH264_VERSION }}-linux64.8.so.bz2
+          bzip2 -d libopenh264-${{ env.OPENH264_VERSION }}-linux64.8.so.bz2
+          mv libopenh264-${{ env.OPENH264_VERSION }}-linux64.8.so libopenh264.so
           echo "OPENH264_PATH=$(pwd)/libopenh264.so" >> $GITHUB_ENV
       - uses: astral-sh/setup-uv@v5
       - run: uv python pin ${{ matrix.python_version }}
@@ -58,9 +58,9 @@ jobs:
           sudo apt-get -y install libva2 libdrm2 libva-dev libdrm-dev libx11-dev portaudio19-dev
       - name: Download openh264
         run: |
-          curl -LO http://ciscobinary.openh264.org/libopenh264-${{ env.OPENH264_VERSION }}-linux-arm64.7.so.bz2
-          bzip2 -d libopenh264-${{ env.OPENH264_VERSION }}-linux-arm64.7.so.bz2
-          mv libopenh264-${{ env.OPENH264_VERSION }}-linux-arm64.7.so libopenh264.so
+          curl -LO http://ciscobinary.openh264.org/libopenh264-${{ env.OPENH264_VERSION }}-linux-arm64.8.so.bz2
+          bzip2 -d libopenh264-${{ env.OPENH264_VERSION }}-linux-arm64.8.so.bz2
+          mv libopenh264-${{ env.OPENH264_VERSION }}-linux-arm64.8.so libopenh264.so
           echo "OPENH264_PATH=$(pwd)/libopenh264.so" >> $GITHUB_ENV
       - uses: astral-sh/setup-uv@v5
       - run: uv python pin ${{ matrix.python_version }}
