@@ -11,6 +11,8 @@
 
 ## develop
 
+- [CHANGE] Sora Python SDK に合わせて Python 3.10 を落とす
+  - @voluntas
 - [UPDATE] Sora Python SDK のバージョンを 2025.1.0 に上げる
   - @voluntas
 
