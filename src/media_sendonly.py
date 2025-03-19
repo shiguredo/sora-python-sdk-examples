@@ -15,7 +15,10 @@ from sora_sdk import (
     Sora,
     SoraConnection,
     SoraSignalingErrorCode,
+    SoraVideoCodecPreference,
 )
+
+from misc import get_video_codec_preference
 
 
 class Sendonly:
@@ -37,7 +40,7 @@ class Sendonly:
         video_bit_rate: Optional[int] = None,
         data_channel_signaling: Optional[bool] = None,
         openh264_path: Optional[str] = None,
-        use_hwa: bool = False,
+        video_codec_preference: Optional[SoraVideoCodecPreference] = None,
         audio_channels: int = 1,
         audio_sample_rate: int = 16000,
         video_capture: Optional[cv2.VideoCapture] = None,
@@ -63,7 +66,10 @@ class Sendonly:
         self._audio_channels: int = audio_channels
         self._audio_sample_rate: int = audio_sample_rate
 
-        self._sora: Sora = Sora(openh264=openh264_path, use_hardware_encoder=use_hwa)
+        self._sora: Sora = Sora(
+            video_codec_preference=video_codec_preference,
+            openh264=openh264_path,
+        )
 
         self._fake_audio_thread: Optional[threading.Thread] = None
         self._fake_video_thread: Optional[threading.Thread] = None
@@ -117,9 +123,9 @@ class Sendonly:
             self._fake_video_thread = threading.Thread(target=self._fake_video_loop, daemon=True)
             self._fake_video_thread.start()
 
-        assert self._connected.wait(
-            self._default_connection_timeout_s
-        ), "Could not connect to Sora."
+        assert self._connected.wait(self._default_connection_timeout_s), (
+            "Could not connect to Sora."
+        )
 
     def disconnect(self) -> None:
         """Sora から切断します。"""
@@ -318,7 +324,7 @@ def sendonly() -> None:
 
     openh264_path = os.getenv("OPENH264_PATH")
 
-    use_hwa = bool(os.getenv("USE_HWA", "True"))
+    video_codec_preference = get_video_codec_preference(openh264_path)
 
     sendonly = Sendonly(
         signaling_urls,
@@ -327,7 +333,7 @@ def sendonly() -> None:
         video_codec_type=video_codec_type,
         video_bit_rate=video_bit_rate,
         openh264_path=openh264_path,
-        use_hwa=use_hwa,
+        video_codec_preference=video_codec_preference,
         video_capture=video_capture,
     )
     sendonly.run()
