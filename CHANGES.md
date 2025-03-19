@@ -28,3 +28,7 @@
   - @voluntas
 - [ADD] GitHub Actions に ubuntu-24.04-arm による E2E テストを追加
   - @voluntas
+
+## 2024.3.0
+
+**祝いリリース**
