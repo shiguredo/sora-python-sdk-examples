@@ -11,6 +11,8 @@
 
 ## develop
 
+## 2025.1.0
+
 - [CHANGE] Sora Python SDK に合わせて Python 3.10 を落とす
   - @voluntas
 - [UPDATE] Sora Python SDK のバージョンを 2025.1.0 に上げる
@@ -22,7 +24,7 @@
   - @voluntas
 - [CHANGE] E2E テスト成功時に slack 通知をしないようにする
   - @voluntas
-- [UPDATE] GitHub Actions の openh264 のバージョンを 2.5.0 に上げる
+- [UPDATE] GitHub Actions の openh264 のバージョンを 2.6.0 に上げる
   - @voluntas
 - [ADD] GitHub Actions に ubuntu-24.04-arm による E2E テストを追加
   - @voluntas
