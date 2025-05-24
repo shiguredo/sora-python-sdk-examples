@@ -14,6 +14,8 @@
 - [UPDATE]  Sora Python SDK サンプル集のバージョンを 0.0.0 にする
   - 公開の予定はないためこのバージョンで固定し変更しない
   - @miosakuma
+- [UPDATE] Sora Python SDK のバージョンを 2025.2.3 に上げる
+  - @voluntas
 - [UPDATE] Sora Python SDK のバージョンを 2025.2.1 に上げる
   - @miosakuma
 
