@@ -19,6 +19,12 @@
 - [UPDATE] Sora Python SDK のバージョンを 2025.2.1 に上げる
   - @miosakuma
 
+### misc
+
+- [ADD] .github ディレクトリに copilot-instructions.md を追加
+  - @torikizi
+
+
 ## 2025.1.0
 
 - [CHANGE] Sora Python SDK に合わせて Python 3.10 を落とす
