@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.13' and sys_platform == 'darwin'",
@@ -781,23 +781,25 @@ wheels = [
 
 [[package]]
 name = "sora-sdk"
-version = "2025.2.3"
+version = "2025.4.0"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/3e/b2/d359a4b691b8b88abf24f49b800c2c63ef8ed16a8dce781c59ebc7fcc30e/sora_sdk-2025.2.3.tar.gz", hash = "sha256:d7072d9dbf9dd2849a210362ff972ae4a9b9110c0f50adb589ea4325bd4cc845", size = 6727578, upload-time = "2025-05-23T01:53:44.062Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/81/82/db8e95cceddd359bdd8c1b801badda32e0c76d616eb34fd0b67d9d295a56/sora_sdk-2025.4.0.tar.gz", hash = "sha256:27b537da1582a34ead0c7a9f0443f07f9c575d11e27f2f3fd0ab0b0f7e3c38ce", size = 6716084, upload-time = "2025-09-12T10:03:13.287Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6a/ce/24148e95e95e3107a1da417b098c876706a40ea36be5b931bc40f2c00c00/sora_sdk-2025.2.3-cp311-cp311-macosx_14_0_arm64.whl", hash = "sha256:e108d9238d83b87d21a5d2976e6f6477cf858f5aa93c3646c628076afde77ada", size = 6764034, upload-time = "2025-05-23T01:53:39.86Z" },
-    { url = "https://files.pythonhosted.org/packages/4d/67/2d7a7d628161c0f13d48f7b060d07e84838cb36f7045e91d513aa9bf6090/sora_sdk-2025.2.3-cp311-cp311-macosx_15_0_arm64.whl", hash = "sha256:6cd83a51f692d8ae1166ee5c338a237f5924f17a5f5378cd0fca845ff838c73f", size = 6684083, upload-time = "2025-05-23T01:53:40.118Z" },
-    { url = "https://files.pythonhosted.org/packages/2d/13/8c549c96621c5048780ac99de1e08e792d724bd4a0b085862a6335bfb84b/sora_sdk-2025.2.3-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:d3a6e00f28a54d99afe3cc5fe3220175e0fe1c1aebcecf0c93a2ad2a85925557", size = 8886919, upload-time = "2025-05-23T01:53:33.674Z" },
-    { url = "https://files.pythonhosted.org/packages/85/93/89e360da735008b7445c013d4255bc2295758862b17569b150d7da11f593/sora_sdk-2025.2.3-cp311-cp311-win_amd64.whl", hash = "sha256:16878262ff271442a82108c520bcacae206241877f3ae78b50fd458102a0beb6", size = 8097114, upload-time = "2025-05-23T01:53:40.18Z" },
-    { url = "https://files.pythonhosted.org/packages/b5/19/2c787d5775062d3ac3d60bf66254c25b76a3011e0640d65db979b7712077/sora_sdk-2025.2.3-cp312-cp312-macosx_14_0_arm64.whl", hash = "sha256:82e40e760f6e8c48c5e70077d64d70cbd9e3ac82bc5863e809dc6d580b37aee8", size = 6764075, upload-time = "2025-05-23T01:53:33.042Z" },
-    { url = "https://files.pythonhosted.org/packages/58/54/637f55b7aee6dcb20d1b1e8a518aa987ffad6be70d3a2c0647da0c9dfefe/sora_sdk-2025.2.3-cp312-cp312-macosx_15_0_arm64.whl", hash = "sha256:e0caea58d7713ef03dd92b244ead9a1cabb38728bdf615aac6be9201bfabb5e2", size = 6683850, upload-time = "2025-05-23T01:53:40.276Z" },
-    { url = "https://files.pythonhosted.org/packages/84/26/f5535a2c6df90b357729c86aa9bbe9aac01513d229382e87592a4dc70eb7/sora_sdk-2025.2.3-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:9f188087614592c8f0d3c781b8b68ba5fc3dcd4f8612dda30c92aa05c193c3fe", size = 7445979, upload-time = "2025-05-23T01:53:38.813Z" },
-    { url = "https://files.pythonhosted.org/packages/d1/85/733d128a714aff61ab1959d05e039ca0a70dcdea14578be170ac8254feca/sora_sdk-2025.2.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:402eb16feb06d842b89760b53c9a19c7ec4a16e957dd4ce5ade7023518003b7a", size = 8889593, upload-time = "2025-05-23T01:53:41.221Z" },
-    { url = "https://files.pythonhosted.org/packages/7f/c2/4fa63934af3d8abb1a5ef03b358aa922f7bf9bb1c985dd2ad675f8ba657a/sora_sdk-2025.2.3-cp312-cp312-win_amd64.whl", hash = "sha256:f330693589efd2fb4185b22e681e8bf12b77f0dc756c1534e2c1b3c8628acda5", size = 8097089, upload-time = "2025-05-23T01:53:36.346Z" },
-    { url = "https://files.pythonhosted.org/packages/02/0b/9daa6fc5922a043326fa9e8474f5e24d8a4a59602eb47ea2cad8b7214aa4/sora_sdk-2025.2.3-cp313-cp313-macosx_14_0_arm64.whl", hash = "sha256:1404b668106f3330c07b8845c553369ac643386600194a7824b867e8f175bc80", size = 6764256, upload-time = "2025-05-23T01:53:32.968Z" },
-    { url = "https://files.pythonhosted.org/packages/f3/6e/04b75f4e43abe49305476a6b1f3ccb410ed543cc0d3a2b8afaa0605d106f/sora_sdk-2025.2.3-cp313-cp313-macosx_15_0_arm64.whl", hash = "sha256:5e99124e808179c2a86854ca815ac77f6ab977ea61b2e104a34f36276a8f6872", size = 6683615, upload-time = "2025-05-23T01:53:36.903Z" },
-    { url = "https://files.pythonhosted.org/packages/4a/25/f711d20a2128b76a8135af1f9dc4791f58ef2a9984375b7edce4954024a0/sora_sdk-2025.2.3-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:3bbb858f7a3ad1c6ec0fd1f797f8f8780a35d299e2b76ed8ae93a436c5517504", size = 8889166, upload-time = "2025-05-23T01:53:34.528Z" },
-    { url = "https://files.pythonhosted.org/packages/50/05/61d6feb157923c4de8f05c6e8e1fbb6e1be6f85fb04ce4723c97a994bbd0/sora_sdk-2025.2.3-cp313-cp313-win_amd64.whl", hash = "sha256:8989e6544cfdda9de9b2bbd90610da3950923a66964a9ecea4dce281c678d997", size = 8097020, upload-time = "2025-05-23T01:53:42.27Z" },
+    { url = "https://files.pythonhosted.org/packages/0f/d3/8d30371fb73c7e326e77090f939fda9fea2f28d310d273fd83ba87ab7e6e/sora_sdk-2025.4.0-cp311-cp311-macosx_14_0_arm64.whl", hash = "sha256:f7671121e7e35cf11704f0c3cba1e67ffd6d8d9f969ea93cc61808454b772c7d", size = 6750383, upload-time = "2025-09-12T10:02:36.45Z" },
+    { url = "https://files.pythonhosted.org/packages/58/de/65a14789cdeb493701e666885883c4ba860c3ecd331718175d6b465b5fec/sora_sdk-2025.4.0-cp311-cp311-macosx_15_0_arm64.whl", hash = "sha256:571fc0ef6550ed2a57c9796cd6fb24de95fbd262e5d4dcf297581d397a065405", size = 6671894, upload-time = "2025-09-12T10:03:11.291Z" },
+    { url = "https://files.pythonhosted.org/packages/d5/7a/7b9ccaee3f0fa953d4480a6b6b9d837bac86ea73872303be76f483729b94/sora_sdk-2025.4.0-cp311-cp311-manylinux_2_31_aarch64.whl", hash = "sha256:3748437cd7ceddb0a021bcf10da8afaef0db17cfc38d713cd0195d6544ab5ead", size = 7430487, upload-time = "2025-09-12T10:02:36.38Z" },
+    { url = "https://files.pythonhosted.org/packages/40/0e/d729edf3c2788d8ba564e3bc6381a4cdd8ffeb6a6c8255573d8abcb41790/sora_sdk-2025.4.0-cp311-cp311-manylinux_2_31_x86_64.whl", hash = "sha256:89d2303826c4dae2803dee20ec8efb080f4c3fde57fc38453b3d24f12e394afb", size = 8837840, upload-time = "2025-09-12T10:02:36.948Z" },
+    { url = "https://files.pythonhosted.org/packages/6b/c8/4e7b8c01f8269ab939ed32ae2486b5406e300db008e4137c0e95956f0edd/sora_sdk-2025.4.0-cp311-cp311-win_amd64.whl", hash = "sha256:7944fa0264c70de1a179e44d82bd2590c264e721663a45c05dc3c33b11fd5220", size = 8144015, upload-time = "2025-09-12T10:02:34.1Z" },
+    { url = "https://files.pythonhosted.org/packages/ea/4f/99f8a41af0001c523e5a3f89719264cef1dcb82ece8cba3d5e9623b7256b/sora_sdk-2025.4.0-cp312-cp312-macosx_14_0_arm64.whl", hash = "sha256:e7d37eab22591c9168e44c8ab99f35ec039a5fa874a2537924957f8970736562", size = 6750656, upload-time = "2025-09-12T10:03:10.172Z" },
+    { url = "https://files.pythonhosted.org/packages/18/5b/f2af7f02c336c8195aa9e5e7b4fac9282d63dd1e9f1a2bfc81a57f41e50b/sora_sdk-2025.4.0-cp312-cp312-macosx_15_0_arm64.whl", hash = "sha256:9a7b1722564100ae2c4b5d8da26bbacd0b03486a39840336b329f0ce9dc82ea7", size = 6671893, upload-time = "2025-09-12T10:03:08.649Z" },
+    { url = "https://files.pythonhosted.org/packages/e7/0f/f5e7af4043daf001e81ed9d312336208798b2fb7a93e8875f70127208379/sora_sdk-2025.4.0-cp312-cp312-manylinux_2_31_aarch64.whl", hash = "sha256:f64b13be9b15a6c34b828b9a49573edabaaa7132ef46526ff0876de8add6a21b", size = 7430238, upload-time = "2025-09-12T10:03:06.53Z" },
+    { url = "https://files.pythonhosted.org/packages/5e/27/74ad48bedc2382b433a83de371877abe48254d5313a1ae4d5b1337a87392/sora_sdk-2025.4.0-cp312-cp312-manylinux_2_31_x86_64.whl", hash = "sha256:68a9b71970283db23feb3737cc70e61b3f13400a861007741345a47f0c9f4a5f", size = 8840064, upload-time = "2025-09-12T10:02:31.248Z" },
+    { url = "https://files.pythonhosted.org/packages/2a/20/f381266fb284c7ad1cea6f65deda785770ef95128c29475ffbb775183105/sora_sdk-2025.4.0-cp312-cp312-win_amd64.whl", hash = "sha256:b755906b9224637aba434ad92d6b6d1929fa7063060eaaed5a054d37c50a9f9d", size = 8144137, upload-time = "2025-09-12T10:02:34.189Z" },
+    { url = "https://files.pythonhosted.org/packages/c9/bf/5a9da051accaf34b68299c0b97d6c0b381a7337ca3fdbd1ea409cbcc7de7/sora_sdk-2025.4.0-cp313-cp313-macosx_14_0_arm64.whl", hash = "sha256:dbed077fbbfe9d29cfab8be5f4583e04377e1cdf5ff5e378a842f43b87f4f802", size = 6750492, upload-time = "2025-09-12T10:02:41.093Z" },
+    { url = "https://files.pythonhosted.org/packages/16/80/040eb41c7f7d450aaa3ce2a1bf4e7903ba444afbce43e47be5e66e0711b2/sora_sdk-2025.4.0-cp313-cp313-macosx_15_0_arm64.whl", hash = "sha256:583c3821d3ec17683a2b4dbaba0ca138c90439571d3064f56dbb26184d1b517c", size = 6671928, upload-time = "2025-09-12T10:03:54.416Z" },
+    { url = "https://files.pythonhosted.org/packages/eb/b8/f9b58f73167f351d21c0cc1cac73d0643c1397480174b1664cc0d85f8fc4/sora_sdk-2025.4.0-cp313-cp313-manylinux_2_31_aarch64.whl", hash = "sha256:66e300b9087a96f560eccff11cb2a58f9a76c695a9696f3fa695e14c02f8f278", size = 7430304, upload-time = "2025-09-12T10:03:04.297Z" },
+    { url = "https://files.pythonhosted.org/packages/28/27/064c14156f837f541a91240e8ec4d07577d517d9b701b8c1fd39dc872457/sora_sdk-2025.4.0-cp313-cp313-manylinux_2_31_x86_64.whl", hash = "sha256:8c730e2759cefa6a24a123dea4580e0f3be655c5ec284af932a75015598c2300", size = 8839758, upload-time = "2025-09-12T10:03:17.442Z" },
+    { url = "https://files.pythonhosted.org/packages/fd/ed/cef328ad2146b651ad43766fccff21f38fa58ef28a5e984e74d6f53a84b2/sora_sdk-2025.4.0-cp313-cp313-win_amd64.whl", hash = "sha256:32c47bbf85c3a0aa4d4e2b531d9c90ab88deec475eb166edfb0cd3c1416cc71a", size = 8144137, upload-time = "2025-09-12T10:03:16.794Z" },
 ]
 
 [[package]]
@@ -830,7 +832,7 @@ requires-dist = [
     { name = "opencv-python-headless", specifier = ">=4.11" },
     { name = "pillow", specifier = ">=10.4" },
     { name = "python-dotenv", specifier = ">=1.0" },
-    { name = "sora-sdk", specifier = "==2025.2.3" },
+    { name = "sora-sdk", specifier = "==2025.4.0" },
     { name = "sounddevice", specifier = ">=0.5" },
 ]
 
