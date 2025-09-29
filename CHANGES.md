@@ -9,6 +9,13 @@
 - FIX
   - バグ修正
 
+## 2025.4
+
+### misc
+
+- [ADD] GitHub Actions の actions/checkout を v5 に上げる
+  - @miosakuma
+
 ## 2025.2
 
 - [UPDATE]  Sora Python SDK サンプル集のバージョンを 0.0.0 にする
