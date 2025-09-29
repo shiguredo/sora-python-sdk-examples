@@ -9,6 +9,11 @@
 - FIX
   - バグ修正
 
+## 2025.3
+
+- [UPDATE] Sora Python SDK のバージョンを 2025.3.0 に上げる
+  - @miosakuma
+
 ## 2025.2
 
 - [UPDATE]  Sora Python SDK サンプル集のバージョンを 0.0.0 にする
