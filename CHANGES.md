@@ -9,6 +9,21 @@
 - FIX
   - バグ修正
 
+## main
+
+- [UPDATE] recvonly.py を複数受信表示に対応
+  - `--grid-cols` 引数で横に並べる数を指定可能
+    - デフォルトは 3
+  - グリッドで表示する
+  - @voluntas
+- [ADD] sendonly.py に `--show-preview` オプションを追加
+  - 配信映像をプレビュー表示する
+  - @voluntas
+- [ADD] examples に argparse を利用した引数指定を追加
+  - @voluntas
+- [ADD] examples に環境変数での args の上書きを追加
+  - @voluntas
+
 ## 2025.4
 
 ### misc
@@ -30,7 +45,6 @@
 
 - [ADD] .github ディレクトリに copilot-instructions.md を追加
   - @torikizi
-
 
 ## 2025.1.0
 
