@@ -60,7 +60,7 @@ jobs:
       - uses: shiguredo/github-actions/.github/actions/download-openh264@main
         id: openh264
         with:
-          platform_name: ubuntu-24.04_arm64
+          platform_name: ubuntu-24.04_armv8
           openh264_version: ${{ env.OPENH264_VERSION }}
       - uses: astral-sh/setup-uv@v7
         with:
