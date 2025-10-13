@@ -1,4 +1,3 @@
-import argparse
 import json
 import platform
 import threading
@@ -9,10 +8,10 @@ from typing import Any
 import cv2  # type: ignore
 import numpy
 import sounddevice  # type: ignore
-from dotenv import load_dotenv
 from helpers import (
-    get_config_value,
+    EnvPrefixArgumentParser,
     get_video_codec_preference,
+    json_object,
     resolve_channel_id,
 )
 from numpy import ndarray
@@ -22,85 +21,6 @@ from sora_sdk import (
     SoraSignalingErrorCode,
     SoraVideoCodecPreference,
 )
-
-
-def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Sora に対して映像と音声を送信する sendonly サンプル",
-    )
-    parser.add_argument(
-        "--signaling-url",
-        dest="signaling_urls",
-        action="append",
-        help="Sora シグナリング URL。複数指定可（例: --signaling-url wss://... --signaling-url wss://...）。",
-    )
-    parser.add_argument(
-        "--channel-id",
-        dest="channel_id",
-        help="接続するチャンネル ID。",
-    )
-    parser.add_argument(
-        "--channel-id-prefix",
-        dest="channel_id_prefix",
-        help="チャンネル ID を生成する際に利用するプレフィックス。",
-    )
-    parser.add_argument(
-        "--metadata",
-        dest="metadata",
-        help="接続時に送信する JSON 文字列。",
-    )
-    parser.add_argument(
-        "--video-codec-type",
-        dest="video_codec_type",
-        help="使用するビデオコーデックの種類。",
-    )
-    parser.add_argument(
-        "--video-bit-rate",
-        dest="video_bit_rate",
-        type=int,
-        help="ビデオのビットレート (kbps)。",
-    )
-    parser.add_argument(
-        "--video-width",
-        dest="video_width",
-        type=int,
-        help="ビデオの幅。",
-    )
-    parser.add_argument(
-        "--video-height",
-        dest="video_height",
-        type=int,
-        help="ビデオの高さ。",
-    )
-    parser.add_argument(
-        "--video-fps",
-        dest="video_fps",
-        type=int,
-        help="ビデオのフレームレート。",
-    )
-    parser.add_argument(
-        "--video-fourcc",
-        dest="video_fourcc",
-        help="ビデオの FOURCC コード。",
-    )
-    parser.add_argument(
-        "--camera-id",
-        dest="camera_id",
-        type=int,
-        help="使用するカメラの ID。",
-    )
-    parser.add_argument(
-        "--openh264-path",
-        dest="openh264_path",
-        help="OpenH264 ライブラリへのパス。",
-    )
-    parser.add_argument(
-        "--show-preview",
-        dest="show_preview",
-        action="store_true",
-        help="送信中の映像をプレビュー表示します。",
-    )
-    return parser.parse_args(argv)
 
 
 class Sendonly:
@@ -270,7 +190,7 @@ class Sendonly:
             and message["event_type"] == "connection.created"
             and message["connection_id"] == self._connection_id
         ):
-            print(f"Connected Sora: connection_id={self._connection_id}")
+            print(f"Connected Sora: channel_id={self._channel_id}, connection_id={self._connection_id}")
             self._connected.set()
 
     def _on_disconnect(self, error_code: SoraSignalingErrorCode, message: str) -> None:
@@ -380,64 +300,126 @@ def get_video_capture(
     return video_capture
 
 
+def _parse_args(argv: list[str] | None = None):
+    parser = EnvPrefixArgumentParser(
+        env_prefix="SORA_",
+        description="Sora に対して映像と音声を送信する sendonly サンプル",
+    )
+    parser.add_argument(
+        "--signaling-url",
+        dest="signaling_urls",
+        nargs="+",
+        metavar="URL",
+        help="Sora シグナリング URL。複数指定可（例: --signaling-url wss://... --signaling-url wss://...）。",
+    )
+    parser.add_argument("--channel-id", dest="channel_id", help="接続するチャンネル ID")
+    parser.add_argument(
+        "--channel-id-prefix",
+        dest="channel_id_prefix",
+        help="チャンネル ID を生成する際に利用するプレフィックス",
+    )
+    parser.add_argument(
+        "--metadata",
+        dest="metadata",
+        type=json_object,
+        help="接続時に送信する JSON 文字列",
+    )
+    parser.add_argument(
+        "--video-codec-type",
+        dest="video_codec_type",
+        choices=["VP8", "VP9", "AV1", "H264", "H265"],
+        default="VP9",
+        help="使用するビデオコーデックの種類",
+    )
+    parser.add_argument(
+        "--video-bit-rate",
+        dest="video_bit_rate",
+        type=int,
+        default=500,
+        help="ビデオのビットレート (kbps)",
+    )
+    parser.add_argument(
+        "--video-width",
+        dest="video_width",
+        type=int,
+        default=640,
+        help="ビデオの幅",
+    )
+    parser.add_argument(
+        "--video-height",
+        dest="video_height",
+        type=int,
+        default=360,
+        help="ビデオの高さ",
+    )
+    parser.add_argument(
+        "--video-fps",
+        dest="video_fps",
+        type=int,
+        default=30,
+        help="ビデオのフレームレート",
+    )
+    parser.add_argument(
+        "--video-fourcc",
+        dest="video_fourcc",
+        default="MJPG",
+        help="ビデオの FOURCC コード",
+    )
+    parser.add_argument(
+        "--camera-id",
+        dest="camera_id",
+        type=int,
+        default=0,
+        help="使用するカメラの ID",
+    )
+    parser.add_argument("--openh264-path", dest="openh264_path", help="OpenH264 ライブラリへのパス")
+    parser.add_argument(
+        "--show-preview",
+        dest="show_preview",
+        action="store_true",
+        help="送信中の映像をプレビュー表示します",
+    )
+    return parser.parse_args(argv)
+
+
 def main(argv: list[str] | None = None) -> None:
     """
     コマンドライン引数を設定しておき、必要に応じて環境変数で上書きしながら
     Sendonly インスタンスを構築し実行します。
     """
-    load_dotenv()
-
     args = _parse_args(argv)
 
-    signaling_urls = get_config_value(
-        "SORA_SIGNALING_URLS", args.signaling_urls, required=True, type=list
-    )
+    signaling_urls = args.signaling_urls
     if not signaling_urls:
         raise ValueError("シグナリング URL が指定されていません")
 
-    channel_id_raw = get_config_value("SORA_CHANNEL_ID", args.channel_id)
-    channel_id_prefix = get_config_value("SORA_CHANNEL_ID_PREFIX", args.channel_id_prefix)
-    channel_id = resolve_channel_id(channel_id_raw, channel_id_prefix)
+    channel_id = resolve_channel_id(args.channel_id, args.channel_id_prefix)
 
-    metadata = get_config_value("SORA_METADATA", args.metadata, type="json")
-
-    video_codec_type = get_config_value(
-        "SORA_VIDEO_CODEC_TYPE", args.video_codec_type, default="VP9"
-    )
-    video_bit_rate = get_config_value("SORA_VIDEO_BIT_RATE", args.video_bit_rate, default=500)
-    video_width = get_config_value("SORA_VIDEO_WIDTH", args.video_width, default=640)
-    video_height = get_config_value("SORA_VIDEO_HEIGHT", args.video_height, default=360)
-    video_fps = get_config_value("SORA_VIDEO_FPS", args.video_fps, default=30)
-    video_fourcc = get_config_value("SORA_VIDEO_FOURCC", args.video_fourcc, default="MJPG")
-
-    camera_id = get_config_value("SORA_CAMERA_ID", args.camera_id, default=0)
+    camera_id = args.camera_id
     if camera_id is None:
         raise ValueError("カメラ ID を整数で指定してください")
 
     # OpenCV を利用したビデオキャプチャの設定
     video_capture = get_video_capture(
         camera_id=camera_id,
-        video_width=video_width,
-        video_height=video_height,
-        video_fps=video_fps,
-        video_fourcc=video_fourcc,
+        video_width=args.video_width,
+        video_height=args.video_height,
+        video_fps=args.video_fps,
+        video_fourcc=args.video_fourcc,
     )
 
-    openh264_path = get_config_value("OPENH264_PATH", args.openh264_path)
-    show_preview = get_config_value("SORA_SHOW_PREVIEW", args.show_preview, default=False, type=bool)
-
-    video_codec_preference = get_video_codec_preference(openh264_path)
+    video_codec_preference = get_video_codec_preference(args.openh264_path)
 
     sendonly_instance = Sendonly(
         signaling_urls,
         channel_id,
-        metadata=metadata,
-        video_codec_type=video_codec_type,
-        video_bit_rate=video_bit_rate,
-        openh264_path=openh264_path,
+        metadata=args.metadata,
+        video_codec_type=args.video_codec_type,
+        video_bit_rate=args.video_bit_rate,
+        openh264_path=args.openh264_path,
         video_codec_preference=video_codec_preference,
         video_capture=video_capture,
-        show_preview=show_preview,
+        show_preview=args.show_preview,
     )
     sendonly_instance.run()
 

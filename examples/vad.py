@@ -1,9 +1,7 @@
-import argparse
 import json
 from threading import Event
 from typing import Any
 
-from dotenv import load_dotenv
 from sora_sdk import (
     Sora,
     SoraAudioFrame,
@@ -12,7 +10,7 @@ from sora_sdk import (
     SoraVAD,
 )
 
-from helpers import get_config_value, resolve_channel_id
+from helpers import EnvPrefixArgumentParser, json_object, resolve_channel_id
 
 
 class VAD:
@@ -78,7 +76,7 @@ class VAD:
             and message["event_type"] == "connection.created"
             and message["connection_id"] == self._connection_id
         ):
-            print(f"Connected Sora: connection_id={self._connection_id}")
+            print(f"Connected Sora: channel_id={self._channel_id}, connection_id={self._connection_id}")
             self._connected.set()
 
     def _on_disconnect(self, error_code, message):
@@ -114,30 +112,33 @@ class VAD:
             self.disconnect()
 
 
-def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
+def _parse_args(argv: list[str] | None = None):
+    parser = EnvPrefixArgumentParser(
+        env_prefix="SORA_",
         description="Sora の音声ストリームで VAD を行う recvonly サンプル",
     )
     parser.add_argument(
         "--signaling-url",
         dest="signaling_urls",
-        action="append",
+        nargs="+",
+        metavar="URL",
         help="Sora シグナリング URL。複数指定可（例: --signaling-url wss://... --signaling-url wss://...）。",
     )
     parser.add_argument(
         "--channel-id",
         dest="channel_id",
-        help="接続するチャンネル ID。",
+        help="接続するチャンネル ID",
     )
     parser.add_argument(
         "--channel-id-prefix",
         dest="channel_id_prefix",
-        help="チャンネル ID を生成する際に利用するプレフィックス。",
+        help="チャンネル ID を生成する際に利用するプレフィックス",
     )
     parser.add_argument(
         "--metadata",
         dest="metadata",
-        help="接続時に送信する JSON 文字列。",
+        type=json_object,
+        help="接続時に送信する JSON 文字列",
     )
     return parser.parse_args(argv)
 
@@ -146,26 +147,18 @@ def main(argv: list[str] | None = None) -> None:
     """
     コマンドライン引数および環境変数から設定を取得し、VAD サンプルを実行します。
     """
-    load_dotenv()
-
     args = _parse_args(argv)
 
-    signaling_urls = get_config_value(
-        "SORA_SIGNALING_URLS", args.signaling_urls, required=True, type=list
-    )
+    signaling_urls = args.signaling_urls
     if not signaling_urls:
         raise ValueError("シグナリング URL が指定されていません")
 
-    channel_id_raw = get_config_value("SORA_CHANNEL_ID", args.channel_id)
-    channel_id_prefix = get_config_value("SORA_CHANNEL_ID_PREFIX", args.channel_id_prefix)
-    channel_id = resolve_channel_id(channel_id_raw, channel_id_prefix)
-
-    metadata = get_config_value("SORA_METADATA", args.metadata, type="json")
+    channel_id = resolve_channel_id(args.channel_id, args.channel_id_prefix)
 
     vad_instance = VAD(
         signaling_urls,
         channel_id,
-        metadata=metadata,
+        metadata=args.metadata,
     )
     vad_instance.run()
 

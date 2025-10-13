@@ -1,7 +1,10 @@
+import argparse
 import json
 import os
 import platform
-from typing import Any, Callable
+import sys
+from pathlib import Path
+from typing import Any
 from uuid import uuid4
 
 from sora_sdk import (
@@ -10,188 +13,161 @@ from sora_sdk import (
     get_video_codec_capability,
 )
 
-__all__ = [
-    "coerce_bool",
-    "coerce_int",
-    "coerce_json",
-    "coerce_list",
-    "get_config_value",
-    "get_video_codec_preference",
-    "resolve_channel_id",
-]
+
+def _load_env_file(env_file: str | Path, encoding: str = "utf-8") -> None:
+    """
+    .env ファイルを読み込んで環境変数に設定します。
+
+    既存の環境変数は上書きしません。
+    """
+    env_path = Path(env_file)
+    if not env_path.exists():
+        return
+
+    with open(env_path, encoding=encoding) as f:
+        for line in f:
+            line = line.strip()
+            # 空行とコメントをスキップ
+            if not line or line.startswith("#"):
+                continue
+
+            # KEY=VALUE 形式を解析
+            if "=" not in line:
+                continue
+
+            key, _, value = line.partition("=")
+            key = key.strip()
+            value = value.strip()
+
+            # 引用符を除去（先頭と末尾が同じ引用符の場合）
+            if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+                value = value[1:-1]
+
+            # 既存の環境変数は上書きしない
+            os.environ.setdefault(key, value)
 
 
-def coerce_bool(value: Any) -> bool:
-    if isinstance(value, bool):
-        return value
-    if value in (None, "", 0):
-        return False
-    if isinstance(value, (int, float)):
-        return bool(value)
-    value_str = str(value).strip().lower()
-    if value_str in {"1", "true", "yes", "on"}:
-        return True
-    if value_str in {"0", "false", "no", "off"}:
-        return False
-    raise ValueError(f"ブール値として解釈できない値です: {value!r}")
+def _truthy(value: str) -> bool:
+    return value.strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
-def coerce_int(value: Any) -> int | None:
-    if value in (None, ""):
-        return None
-    if isinstance(value, int):
-        return value
-    return int(value)
-
-
-def coerce_json(value: Any) -> dict[str, Any] | list[Any] | None:
-    if value in (None, ""):
-        return None
-    if isinstance(value, (dict, list)):
-        return value
-    return json.loads(value)
-
-
-def coerce_list(value: Any) -> list[str]:
-    if value is None:
+def _split_list(raw: str) -> list[str]:
+    stripped = raw.strip()
+    if not stripped:
         return []
-    if isinstance(value, (list, tuple, set)):
-        return [str(v) for v in value]
-    return [item.strip() for item in str(value).split(",") if item.strip()]
+    # カンマのみで区切られているケース（空白を含まない）
+    if "," in stripped and " " not in stripped.replace(",", ""):
+        return [item for item in (part.strip() for part in stripped.split(",")) if item]
+    # それ以外は空白区切りとして扱う
+    return [item for item in stripped.split() if item]
 
 
-_TYPE_CASTERS: dict[type[Any], Callable[[Any], Any]] = {
-    bool: coerce_bool,
-    int: lambda v: int(v),
-    float: lambda v: float(v),
-    str: lambda v: str(v),
-}
-
-_NAME_CASTERS: dict[str, Callable[[Any], Any]] = {
-    "bool": coerce_bool,
-    "boolean": coerce_bool,
-    "int": lambda v: int(v),
-    "integer": lambda v: int(v),
-    "float": lambda v: float(v),
-    "json": lambda v: _ensure_json(v),
-    "dict": lambda v: _ensure_json(v),
-    "mapping": lambda v: _ensure_json(v),
-    "list": coerce_list,
-    "tuple": lambda v: tuple(coerce_list(v)),
-    "set": lambda v: set(coerce_list(v)),
-    "str": lambda v: str(v),
-    "string": lambda v: str(v),
-    "auto": None,  # 特別扱い
-}
-
-
-def get_config_value(
-    env_name: str,
-    cli_value: Any | None,
-    *,
-    default: Any | None = None,
-    required: bool = False,
-    type_: str | type[Any] | Callable[[Any], Any] | None = "auto",
-    cast: str | type[Any] | Callable[[Any], Any] | None = None,
-    **kwargs: Any,
-) -> Any | None:
-    """環境変数・CLI 引数・既定値の順に設定値を解決し、必要に応じて型変換する。"""
-
-    if "type" in kwargs:
-        if type_ not in (None, "auto"):
-            raise TypeError("`type` と `type_` を同時に指定できません")
-        type_ = kwargs.pop("type")
-    if kwargs:
-        unexpected = ", ".join(kwargs.keys())
-        raise TypeError(f"未対応のキーワード引数です: {unexpected}")
-
-    env_value = os.getenv(env_name)
-    source_value: Any | None = None
-
-    if env_value not in (None, ""):
-        source_value = env_value
-    elif cli_value is not None:
-        source_value = cli_value
-
-    if source_value is None:
-        if default is not None:
-            return default
-        if required:
-            raise ValueError(f"環境変数 {env_name} が設定されていません")
-        return None
-
-    # 後方互換のため cast を優先的に解釈する
-    type_hint = cast if cast is not None and type_ in (None, "auto") else type_
-    caster = _resolve_caster(type_hint, default)
-    return caster(source_value)
-
-
-def _resolve_caster(
-    type_hint: str | type[Any] | Callable[[Any], Any] | None,
-    default: Any | None,
-) -> Callable[[Any], Any]:
-    if callable(type_hint) and not isinstance(type_hint, type):
-        return type_hint
-
-    if isinstance(type_hint, type):
-        if type_hint in _TYPE_CASTERS:
-            return _TYPE_CASTERS[type_hint]
-        if issubclass(type_hint, dict):
-            return _ensure_json
-        if issubclass(type_hint, list):
-            return coerce_list
-        if issubclass(type_hint, tuple):
-            return lambda v: tuple(coerce_list(v))
-        if issubclass(type_hint, set):
-            return lambda v: set(coerce_list(v))
-        return lambda v: type_hint(v)
-
-    if isinstance(type_hint, str) and type_hint:
-        key = type_hint.lower()
-        if key in ("auto", "default"):
-            return lambda v: _auto_cast(v, default)
-        if key in _NAME_CASTERS and _NAME_CASTERS[key] is not None:
-            return _NAME_CASTERS[key]
-        raise ValueError(f"未対応の型指定です: {type_hint}")
-
-    return lambda v: _auto_cast(v, default)
-
-
-def _auto_cast(value: Any, default: Any | None) -> Any:
+class EnvPrefixArgumentParser(argparse.ArgumentParser):
     """
-    default の型をもとに簡易的にキャストする。
+    環境変数に基づいて未指定のオプションを補完する ArgumentParser。
 
-    bool/int/float は専用パーサ、dict/list は JSON 文字列として扱う。
-    default が None の場合は文字列のまま返す。
+    env_prefix="SORA_" の場合、`--channel-id-prefix` は `SORA_CHANNEL_ID_PREFIX`
+    環境変数を参照します。CLI で指定された値が優先されます。
+
+    env_file を指定すると、初期化時にその .env ファイルを読み込みます。
     """
 
-    if default is None or value is None:
-        return value
+    def __init__(
+        self,
+        *args,
+        env_prefix: str = "",
+        env_file: str | Path = ".env",
+        env_file_encoding: str = "utf-8",
+        **kwargs,
+    ) -> None:
+        self._env_prefix = env_prefix or ""
+        self._dest_to_opts: dict[str, list[str]] = {}
 
-    default_type = type(default)
+        # .env ファイルを読み込む
+        if env_file:
+            _load_env_file(env_file, encoding=env_file_encoding)
 
-    if default_type in _TYPE_CASTERS:
-        return _TYPE_CASTERS[default_type](value)
+        super().__init__(*args, **kwargs)
 
-    if isinstance(default, dict):
-        return _ensure_json(value)
+    def add_argument(self, *args, **kwargs):
+        action = super().add_argument(*args, **kwargs)
+        option_strings = getattr(action, "option_strings", None)
+        if option_strings:
+            self._dest_to_opts[action.dest] = list(option_strings)
+        return action
 
-    if isinstance(default, list):
-        return coerce_list(value)
+    def _build_env_args(self, args: list[str]) -> list[str]:
+        seen_options = {token for token in args if isinstance(token, str) and token.startswith("-")}
 
-    if isinstance(default, tuple):
-        return tuple(coerce_list(value))
+        injected: list[str] = []
+        for action in self._actions:
+            option_strings = getattr(action, "option_strings", None)
+            if not option_strings:
+                continue  # 位置引数は対象外
 
-    if isinstance(default, set):
-        return set(coerce_list(value))
+            env_name = self._build_env_name(action.dest)
+            if not env_name or env_name not in os.environ:
+                continue
 
-    return value
+            # 既に CLI で指定されている場合はスキップ
+            if any(opt in seen_options for opt in option_strings):
+                continue
+
+            raw = os.environ[env_name]
+
+            if isinstance(action, argparse._StoreTrueAction):
+                if _truthy(raw):
+                    injected.append(option_strings[0])
+                continue
+            if isinstance(action, argparse._StoreFalseAction):
+                if not _truthy(raw):
+                    injected.append(option_strings[0])
+                continue
+            if isinstance(action, argparse._StoreConstAction):
+                if _truthy(raw):
+                    injected.append(option_strings[0])
+                continue
+
+            if action.nargs in (None, 1):
+                injected.extend([option_strings[0], raw])
+            elif action.nargs in ("+", "*"):
+                parts = _split_list(raw)
+                if parts or action.nargs == "+":
+                    injected.extend([option_strings[0], *parts])
+            elif isinstance(action.nargs, int):
+                parts = _split_list(raw)
+                if len(parts) != action.nargs:
+                    raise ValueError(
+                        f"{env_name} expects {action.nargs} values, got {len(parts)}: {raw!r}"
+                    )
+                injected.extend([option_strings[0], *parts])
+            else:
+                injected.extend([option_strings[0], raw])
+
+        return injected
+
+    def _build_env_name(self, dest: str | None) -> str | None:
+        if not dest:
+            return None
+        if not self._env_prefix:
+            return None
+        return f"{self._env_prefix}{dest.upper().replace('-', '_')}"
+
+    def parse_args(self, args: list[str] | None = None, namespace=None):
+        if args is None:
+            args = sys.argv[1:]
+        env_args = self._build_env_args(list(args))
+        # env_args を先頭にして CLI 側を優先させる（後勝ち）
+        return super().parse_args(env_args + list(args), namespace=namespace)
 
 
-def _ensure_json(value: Any) -> dict[str, Any] | list[Any]:
-    parsed = coerce_json(value)
-    if parsed is None:
-        raise ValueError(f"JSON として解釈できない値です: {value!r}")
+def json_object(value: str) -> dict[str, Any]:
+    try:
+        parsed = json.loads(value)
+    except json.JSONDecodeError as exc:  # pragma: no cover - argparse ハンドリング
+        raise argparse.ArgumentTypeError(f"JSON を解析できません: {exc}") from exc
+    if not isinstance(parsed, dict):
+        raise argparse.ArgumentTypeError("JSON オブジェクト（{}）を指定してください")
     return parsed
 
 
@@ -200,7 +176,6 @@ def get_video_codec_preference(openh264_path: str | None) -> SoraVideoCodecPrefe
 
     codecs = []
     for engine in capabilities.engines:
-        # Darwin では OpenH264 を採用しない
         if (
             platform.system() == "Darwin"
             and engine.name == SoraVideoCodecImplementation.CISCO_OPENH264
@@ -208,7 +183,6 @@ def get_video_codec_preference(openh264_path: str | None) -> SoraVideoCodecPrefe
             continue
 
         for codec in engine.codecs:
-            # codec が encoder と decoder が true の場合のみ追加する
             if codec.encoder and codec.decoder:
                 codecs.append(
                     SoraVideoCodecPreference.Codec(
@@ -225,13 +199,6 @@ def resolve_channel_id(
     channel_id: str | None,
     channel_id_prefix: str | None,
 ) -> str:
-    """
-    チャンネル ID を決定する。
-
-    明示的なチャンネル ID が与えられていればそれを返し、そうでなければ
-    プレフィックスに UUID4 を連結して生成する。
-    """
-
     if channel_id not in (None, ""):
         return str(channel_id)
 

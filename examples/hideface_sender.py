@@ -1,4 +1,3 @@
-import argparse
 import json
 import math
 import platform
@@ -10,11 +9,10 @@ import cv2  # type: ignore
 import mediapipe as mp  # type: ignore
 import numpy as np
 from cv2.typing import MatLike  # type: ignore
-from dotenv import load_dotenv
 from PIL import Image
 from sora_sdk import Sora, SoraSignalingErrorCode, SoraVideoSource
 
-from helpers import get_config_value, resolve_channel_id
+from helpers import EnvPrefixArgumentParser, json_object, resolve_channel_id
 
 
 class LogoStreamer:
@@ -49,6 +47,8 @@ class LogoStreamer:
         :param video_fourcc: ビデオの FOURCC コード
         """
         self.mp_face_detection = mp.solutions.face_detection  # type: ignore
+
+        self._channel_id: str = channel_id
 
         self._sora = Sora(openh264=None)
         self._video_source: SoraVideoSource = self._sora.create_video_source()
@@ -169,7 +169,7 @@ class LogoStreamer:
             and message["event_type"] == "connection.created"
             and message["connection_id"] == self._connection_id
         ):
-            print("Sora に接続しました")
+            print(f"Connected Sora: channel_id={self._channel_id}, connection_id={self._connection_id}")
             self._connected.set()
 
     def run(self) -> None:
@@ -261,21 +261,19 @@ class LogoStreamer:
         return angle
 
 
-def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
+def _parse_args(argv: list[str] | None = None):
+    parser = EnvPrefixArgumentParser(
+        env_prefix="SORA_",
         description="顔検出してロゴを重ねる Sora sendonly サンプル",
     )
     parser.add_argument(
         "--signaling-url",
         dest="signaling_urls",
-        action="append",
+        nargs="+",
+        metavar="URL",
         help="Sora シグナリング URL。複数指定可（例: --signaling-url wss://... --signaling-url wss://...）。",
     )
-    parser.add_argument(
-        "--channel-id",
-        dest="channel_id",
-        help="接続するチャンネル ID。",
-    )
+    parser.add_argument("--channel-id", dest="channel_id", help="接続するチャンネル ID。")
     parser.add_argument(
         "--channel-id-prefix",
         dest="channel_id_prefix",
@@ -284,36 +282,42 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--metadata",
         dest="metadata",
-        help="接続時に送信する JSON 文字列。",
+        type=json_object,
+        help="接続時に送信する JSON 文字列",
     )
     parser.add_argument(
         "--camera-id",
         dest="camera_id",
         type=int,
-        help="使用するカメラの ID。",
+        default=1,
+        help="使用するカメラの ID",
     )
     parser.add_argument(
         "--video-width",
         dest="video_width",
         type=int,
-        help="ビデオの幅。",
+        default=640,
+        help="ビデオの幅",
     )
     parser.add_argument(
         "--video-height",
         dest="video_height",
         type=int,
-        help="ビデオの高さ。",
+        default=360,
+        help="ビデオの高さ",
     )
     parser.add_argument(
         "--video-fps",
         dest="video_fps",
         type=int,
-        help="ビデオのフレームレート。",
+        default=30,
+        help="ビデオのフレームレート",
     )
     parser.add_argument(
         "--video-fourcc",
         dest="video_fourcc",
-        help="ビデオの FOURCC コード。",
+        default="MJPG",
+        help="ビデオの FOURCC コード",
     )
     return parser.parse_args(argv)
 
@@ -322,41 +326,27 @@ def main(argv: list[str] | None = None) -> None:
     """
     コマンドライン引数と環境変数から設定を取得して LogoStreamer を実行します。
     """
-    load_dotenv()
-
     args = _parse_args(argv)
 
-    signaling_urls = get_config_value(
-        "SORA_SIGNALING_URLS", args.signaling_urls, required=True, type=list
-    )
+    signaling_urls = args.signaling_urls
     if not signaling_urls:
         raise ValueError("シグナリング URL が指定されていません")
 
-    channel_id_raw = get_config_value("SORA_CHANNEL_ID", args.channel_id)
-    channel_id_prefix = get_config_value("SORA_CHANNEL_ID_PREFIX", args.channel_id_prefix)
-    channel_id = resolve_channel_id(channel_id_raw, channel_id_prefix)
+    channel_id = resolve_channel_id(args.channel_id, args.channel_id_prefix)
 
-    metadata = get_config_value("SORA_METADATA", args.metadata, type="json")
-
-    video_width = get_config_value("SORA_VIDEO_WIDTH", args.video_width, default=640)
-    video_height = get_config_value("SORA_VIDEO_HEIGHT", args.video_height, default=360)
-    video_fps = get_config_value("SORA_VIDEO_FPS", args.video_fps, default=30)
-    video_fourcc = get_config_value("SORA_VIDEO_FOURCC", args.video_fourcc, default="MJPG")
-
-    camera_id = get_config_value("SORA_CAMERA_ID", args.camera_id, default=1)
-    if camera_id is None:
+    if args.camera_id is None:
         raise ValueError("カメラ ID を整数で指定してください")
 
     streamer = LogoStreamer(
         signaling_urls=signaling_urls,
         role="sendonly",
         channel_id=channel_id,
-        metadata=metadata,
-        camera_id=camera_id,
-        video_height=video_height,
-        video_width=video_width,
-        video_fps=video_fps,
-        video_fourcc=video_fourcc,
+        metadata=args.metadata,
+        camera_id=args.camera_id,
+        video_height=args.video_height,
+        video_width=args.video_width,
+        video_fps=args.video_fps,
+        video_fourcc=args.video_fourcc,
     )
     streamer.run()
 

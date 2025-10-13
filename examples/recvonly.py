@@ -1,4 +1,3 @@
-import argparse
 import json
 import queue
 from threading import Event
@@ -6,10 +5,10 @@ from typing import Any
 
 import cv2  # type: ignore
 import sounddevice  # type: ignore
-from dotenv import load_dotenv
 from helpers import (
-    get_config_value,
+    EnvPrefixArgumentParser,
     get_video_codec_preference,
+    json_object,
     resolve_channel_id,
 )
 from numpy import ndarray
@@ -23,64 +22,6 @@ from sora_sdk import (
     SoraVideoFrame,
     SoraVideoSink,
 )
-
-
-def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Sora から映像・音声を受信する recvonly サンプル",
-    )
-    parser.add_argument(
-        "--signaling-url",
-        dest="signaling_urls",
-        action="append",
-        help="Sora シグナリング URL。複数指定可（例: --signaling-url wss://... --signaling-url wss://...）。",
-    )
-    parser.add_argument(
-        "--channel-id",
-        dest="channel_id",
-        help="接続するチャンネル ID。",
-    )
-    parser.add_argument(
-        "--channel-id-prefix",
-        dest="channel_id_prefix",
-        help="チャンネル ID を生成する際に利用するプレフィックス。",
-    )
-    parser.add_argument(
-        "--metadata",
-        dest="metadata",
-        help="接続時に送信する JSON 文字列。",
-    )
-    parser.add_argument(
-        "--output-frequency",
-        dest="output_frequency",
-        type=int,
-        help="音声出力周波数 (Hz)。",
-    )
-    parser.add_argument(
-        "--output-channels",
-        dest="output_channels",
-        type=int,
-        help="音声出力チャンネル数。",
-    )
-    parser.add_argument(
-        "--data-channel-signaling",
-        dest="data_channel_signaling",
-        action="store_true",
-        help="データチャネルシグナリングを有効にします。",
-    )
-    parser.add_argument(
-        "--no-data-channel-signaling",
-        dest="data_channel_signaling",
-        action="store_false",
-        help="データチャネルシグナリングを無効にします。",
-    )
-    parser.add_argument(
-        "--openh264-path",
-        dest="openh264_path",
-        help="OpenH264 ライブラリへのパス。",
-    )
-    parser.set_defaults(data_channel_signaling=None)
-    return parser.parse_args(argv)
 
 
 class Recvonly:
@@ -208,7 +149,7 @@ class Recvonly:
             and message["event_type"] == "connection.created"
             and message["connection_id"] == self._connection_id
         ):
-            print(f"Connected Sora: connection_id={self._connection_id}")
+            print(f"Connected Sora: channel_id={self._channel_id}, connection_id={self._connection_id}")
             self._connected.set()
 
     def _on_disconnect(self, error_code: SoraSignalingErrorCode, message: str) -> None:
@@ -287,52 +228,84 @@ class Recvonly:
                 cv2.destroyAllWindows()
 
 
+def _parse_args(argv: list[str] | None = None):
+    parser = EnvPrefixArgumentParser(
+        env_prefix="SORA_",
+        description="Sora から映像・音声を受信する recvonly サンプル",
+    )
+    parser.add_argument(
+        "--signaling-url",
+        dest="signaling_urls",
+        nargs="+",
+        metavar="URL",
+        help="Sora シグナリング URL。複数指定可（例: --signaling-url wss://... --signaling-url wss://...）。",
+    )
+    parser.add_argument("--channel-id", dest="channel_id", help="接続するチャンネル ID")
+    parser.add_argument(
+        "--channel-id-prefix",
+        dest="channel_id_prefix",
+        help="チャンネル ID を生成する際に利用するプレフィックス",
+    )
+    parser.add_argument(
+        "--metadata",
+        dest="metadata",
+        type=json_object,
+        help="接続時に送信する JSON 文字列",
+    )
+    parser.add_argument(
+        "--output-frequency",
+        dest="output_frequency",
+        type=int,
+        default=16000,
+        help="音声出力周波数 (Hz)",
+    )
+    parser.add_argument(
+        "--output-channels",
+        dest="output_channels",
+        type=int,
+        default=1,
+        help="音声出力チャンネル数",
+    )
+    parser.add_argument(
+        "--data-channel-signaling",
+        dest="data_channel_signaling",
+        action="store_true",
+        default=None,
+        help="データチャネルシグナリングを有効にします",
+    )
+    parser.add_argument("--openh264-path", dest="openh264_path", help="OpenH264 ライブラリへのパス")
+    return parser.parse_args(argv)
+
+
 def main(argv: list[str] | None = None) -> None:
     """
     コマンドライン引数および環境変数から設定を取得し、Recvonly を実行します。
     """
-    load_dotenv()
-
     args = _parse_args(argv)
 
-    signaling_urls = get_config_value(
-        "SORA_SIGNALING_URLS", args.signaling_urls, required=True, type=list
-    )
+    signaling_urls = args.signaling_urls
     if not signaling_urls:
         raise ValueError("シグナリング URL が指定されていません")
 
-    channel_id_raw = get_config_value("SORA_CHANNEL_ID", args.channel_id)
-    channel_id_prefix = get_config_value("SORA_CHANNEL_ID_PREFIX", args.channel_id_prefix)
-    channel_id = resolve_channel_id(channel_id_raw, channel_id_prefix)
+    channel_id = resolve_channel_id(args.channel_id, args.channel_id_prefix)
 
-    metadata = get_config_value("SORA_METADATA", args.metadata, type="json")
-
-    output_frequency = get_config_value(
-        "SORA_OUTPUT_FREQUENCY", args.output_frequency, default=16000
-    )
-    if output_frequency is None:
+    if args.output_frequency is None:
         raise ValueError("音声出力周波数を整数で指定してください")
 
-    output_channels = get_config_value("SORA_OUTPUT_CHANNELS", args.output_channels, default=1)
-    if output_channels is None:
+    if args.output_channels is None:
         raise ValueError("音声出力チャンネル数を整数で指定してください")
 
-    data_channel_signaling = get_config_value(
-        "SORA_DATA_CHANNEL_SIGNALING", args.data_channel_signaling, type=bool
-    )
-
-    openh264_path = get_config_value("OPENH264_PATH", args.openh264_path)
-    video_codec_preference = get_video_codec_preference(openh264_path)
+    video_codec_preference = get_video_codec_preference(args.openh264_path)
 
     recvonly_instance = Recvonly(
         signaling_urls,
         channel_id,
-        metadata=metadata,
-        data_channel_signaling=data_channel_signaling,
-        openh264_path=openh264_path,
+        metadata=args.metadata,
+        data_channel_signaling=args.data_channel_signaling,
+        openh264_path=args.openh264_path,
         video_codec_preference=video_codec_preference,
-        output_frequency=output_frequency,
-        output_channels=output_channels,
+        output_frequency=args.output_frequency,
+        output_channels=args.output_channels,
     )
     recvonly_instance.run()
 
