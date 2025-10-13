@@ -28,10 +28,10 @@ uv sync
 各サンプルは `examples/<name>.py` として配置されています。例えば `sendonly` サンプルを実行する場合は次のようにします。
 
 ```bash
-uv run python examples/sendonly.py
+uv run python examples/sendonly.py --signaling-url wss://sora.example.com/signaling --channel-id sendonly-example
 ```
 
-## 環境変数による指定
+### 環境変数による指定
 
 `.env.template` をコピーして `.env` に必要な変数を設定してください。
 

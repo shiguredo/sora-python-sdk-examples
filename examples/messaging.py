@@ -10,8 +10,6 @@ from helpers import EnvPrefixArgumentParser, json_object, resolve_channel_id
 
 
 class Messaging:
-    """Sora を使用してメッセージングを行うクラス。"""
-
     def __init__(
         self,
         signaling_urls: list[str],
@@ -19,19 +17,12 @@ class Messaging:
         data_channels: list[dict[str, Any]],
         metadata: dict[str, Any] | None = None,
     ):
-        """
-        Messaging インスタンスを初期化します。
+        self._channel_id = channel_id
 
-        このクラスは Sora への接続を設定し、データチャネルを通じてメッセージの
-        送受信を行うメソッドを提供します。
-
-        :param signaling_urls: Sora シグナリング URL のリスト
-        :param channel_id: 接続するチャンネル ID
-        :param data_channels: データチャネルの設定リスト
-        :param metadata: 接続のためのオプションのメタデータ
-        """
+        # データチャネル設定
         self._data_channels = data_channels
 
+        # Sora 接続の初期化
         self._sora = Sora()
         self._connection: SoraConnection = self._sora.create_connection(
             signaling_urls=signaling_urls,
@@ -45,17 +36,21 @@ class Messaging:
         )
         self._connection_id: str | None = None
 
+        # 接続状態の管理
         self._connected = Event()
         self._switched: bool = False
         self._closed = Event()
         self._default_connection_timeout_s: float = 10.0
 
+        # データチャネルの管理
         self._label = data_channels[0]["label"]
         self._sendable_data_channels: set = set()
         self._is_data_channel_ready = False
 
+        # 送信者の識別用 ID
         self.sender_id = random.randint(1, 10000)
 
+        # コールバック関数の登録
         self._connection.on_set_offer = self._on_set_offer
         self._connection.on_switched = self._on_switched
         self._connection.on_notify = self._on_notify
@@ -65,15 +60,9 @@ class Messaging:
 
     @property
     def closed(self):
-        """接続が閉じられているかどうかを示すブール値。"""
         return self._closed.is_set()
 
     def connect(self):
-        """
-        Sora への接続を確立します。
-
-        :raises AssertionError: タイムアウト期間内に接続が確立できなかった場合
-        """
         self._connection.connect()
 
         assert self._connected.wait(self._default_connection_timeout_s), (
@@ -81,7 +70,6 @@ class Messaging:
         )
 
     def disconnect(self):
-        """Sora から切断します。"""
         self._connection.disconnect()
 
     def get_stats(self):
@@ -98,11 +86,6 @@ class Messaging:
         return self._switched
 
     def send(self, data: bytes):
-        """
-        データチャネルを通じてメッセージを送信します。
-
-        :param data: 送信するバイトデータ
-        """
         # on_data_channel() が呼ばれるまではデータチャネルの準備ができていないので待機
         while not self._is_data_channel_ready and not self._closed.is_set():
             time.sleep(0.01)
@@ -110,32 +93,17 @@ class Messaging:
         self._connection.send_data_channel(self._label, data)
 
     def _on_set_offer(self, raw_message: str):
-        """
-        オファー設定イベントを処理します。
-
-        :param raw_message: オファーを含む生のメッセージ
-        """
         message: dict[str, Any] = json.loads(raw_message)
         if message["type"] == "offer":
             # "type": "offer" に入ってくる自分の connection_id を保存する
             self._connection_id = message["connection_id"]
 
     def _on_switched(self, raw_message: str):
-        """
-        スイッチイベントを処理します。
-
-        :param raw_message: 生のスイッチメッセージ
-        """
         message: dict[str, Any] = json.loads(raw_message)
         if message["type"] == "switched":
             self._switched = True
 
     def _on_notify(self, raw_message: str):
-        """
-        Sora からの通知イベントを処理します。
-
-        :param raw_message: 生の通知メッセージ
-        """
         message: dict[str, Any] = json.loads(raw_message)
         # "type": "notify" の "connection.created" で通知される connection_id が
         # 自分の connection_id と一致する場合に接続完了とする
@@ -144,35 +112,20 @@ class Messaging:
             and message["event_type"] == "connection.created"
             and message["connection_id"] == self._connection_id
         ):
-            print(f"Connected Sora: channel_id={self._channel_id}, connection_id={self._connection_id}")
+            print(
+                f"Connected Sora: channel_id={self._channel_id}, connection_id={self._connection_id}"
+            )
             self._connected.set()
 
     def _on_disconnect(self, error_code: SoraSignalingErrorCode, message: str):
-        """
-        切断イベントを処理します。
-
-        :param error_code: 切断のエラーコード
-        :param message: 切断メッセージ
-        """
         print(f"Disconnected Sora: error_code='{error_code}' message='{message}'")
         self._connected.clear()
         self._closed.set()
 
     def _on_message(self, label: str, data: bytes):
-        """
-        受信したメッセージを処理します。
-
-        :param label: データチャネルのラベル
-        :param data: 受信したバイトデータ
-        """
         print(f"Received message: label={label}, data={data.decode('utf-8')}")
 
     def _on_data_channel(self, label: str):
-        """
-        新しいデータチャネルイベントを処理します。
-
-        :param label: データチャネルのラベル
-        """
         for data_channel in self._data_channels:
             if data_channel["label"] != label:
                 continue
@@ -187,38 +140,42 @@ class Messaging:
 def _parse_args(argv: list[str] | None = None):
     parser = EnvPrefixArgumentParser(
         env_prefix="SORA_",
-        description="Sora のデータチャネルを使ったメッセージングサンプル",
+        description="Sora data channel messaging sample application",
     )
     parser.add_argument(
         "--signaling-url",
         dest="signaling_urls",
         nargs="+",
         metavar="URL",
-        help="Sora シグナリング URL。複数指定可（例: --signaling-url wss://... --signaling-url wss://...）。",
+        help="Sora signaling URL(s) to connect to. Multiple URLs can be specified for failover purposes. Example: --signaling-url wss://example.com/signaling --signaling-url wss://backup.com/signaling",
     )
-    parser.add_argument("--channel-id", dest="channel_id", help="接続するチャンネル ID")
+    parser.add_argument(
+        "--channel-id",
+        dest="channel_id",
+        help="Channel ID to connect to. This identifies the Sora channel for the messaging session. Either this or --channel-id-prefix must be specified.",
+    )
     parser.add_argument(
         "--channel-id-prefix",
         dest="channel_id_prefix",
-        help="チャンネル ID を生成する際に利用するプレフィックス",
+        help="Prefix used to generate a unique channel ID. A random suffix will be appended to this prefix. Use this when you want to create a new channel dynamically.",
     )
     parser.add_argument(
         "--messaging-label",
         dest="messaging_label",
-        help="利用するデータチャネルのラベル",
+        help="Label for the data channel. This label is used to identify the data channel for sending and receiving messages. Must be specified.",
     )
     parser.add_argument(
         "--messaging-direction",
         dest="messaging_direction",
         choices=["sendrecv", "sendonly", "recvonly"],
         default="sendrecv",
-        help="データチャネルの向き（既定: sendrecv）",
+        help="Direction of the data channel communication. 'sendrecv' allows both sending and receiving, 'sendonly' allows only sending, and 'recvonly' allows only receiving messages. Default is 'sendrecv'.",
     )
     parser.add_argument(
         "--metadata",
         dest="metadata",
         type=json_object,
-        help="接続時に送信する JSON 文字列",
+        help='Optional metadata to send during connection establishment, specified as a JSON string. This metadata is sent to the Sora server and can be used for custom connection handling. Example: \'{"key": "value"}\'',
     )
     return parser.parse_args(argv)
 
@@ -228,12 +185,13 @@ def main(argv: list[str] | None = None) -> None:
 
     signaling_urls = args.signaling_urls
     if not signaling_urls:
-        raise ValueError("シグナリング URL が指定されていません")
+        raise ValueError("Signaling URL is not specified")
 
+    # channel_id または channel_id_prefix から実際の channel_id を解決
     channel_id = resolve_channel_id(args.channel_id, args.channel_id_prefix)
 
     if not args.messaging_label:
-        raise ValueError("データチャネルのラベルが指定されていません")
+        raise ValueError("Data channel label is not specified")
 
     data_channels = [{"label": args.messaging_label, "direction": args.messaging_direction}]
     messaging_sendrecv = Messaging(signaling_urls, channel_id, data_channels, args.metadata)

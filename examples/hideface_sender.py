@@ -15,9 +15,8 @@ from sora_sdk import Sora, SoraSignalingErrorCode, SoraVideoSource
 from helpers import EnvPrefixArgumentParser, json_object, resolve_channel_id
 
 
+# 顔検出を行い、検出された顔にロゴを重ねて Sora に送信するクラス
 class LogoStreamer:
-    """顔検出を行い、検出された顔にロゴを重ねて Sora に送信するクラス。"""
-
     def __init__(
         self,
         signaling_urls: list[str],
@@ -30,26 +29,13 @@ class LogoStreamer:
         video_fps: int | None,
         video_fourcc: str | None,
     ):
-        """
-        LogoStreamer インスタンスを初期化します。
-
-        このクラスは Sora への接続を設定し、カメラからのビデオフレームを処理し、
-        顔検出を行い、検出された顔にロゴを重ねて Sora に送信する機能を提供します。
-
-        :param signaling_urls: Sora シグナリング URL のリスト
-        :param role: 接続ロール（"sendonly" など）
-        :param channel_id: 接続するチャンネル ID
-        :param metadata: 接続のためのオプションのメタデータ
-        :param camera_id: 使用するカメラの ID
-        :param video_width: ビデオの幅
-        :param video_height: ビデオの高さ
-        :param video_fps: ビデオのフレームレート
-        :param video_fourcc: ビデオの FOURCC コード
-        """
+        # MediaPipe の顔検出モジュール
         self.mp_face_detection = mp.solutions.face_detection  # type: ignore
 
+        # チャンネル ID
         self._channel_id: str = channel_id
 
+        # Sora SDK の初期化
         self._sora = Sora(openh264=None)
         self._video_source: SoraVideoSource = self._sora.create_video_source()
         self._connection = self._sora.create_connection(
@@ -63,14 +49,17 @@ class LogoStreamer:
         )
         self._connection_id: str | None = None
 
+        # 接続状態管理
         self._connected: Event = Event()
         self._closed: bool = False
         self._default_connection_timeout_s: float = 10.0
 
+        # コールバック設定
         self._connection.on_set_offer = self._on_set_offer
         self._connection.on_notify = self._on_notify
         self._connection.on_disconnect = self._on_disconnect
 
+        # カメラの初期化
         self._setup_video_capture(camera_id, video_width, video_height, video_fps, video_fourcc)
 
         # ロゴを読み込む
@@ -84,17 +73,8 @@ class LogoStreamer:
         video_fps: int | None,
         video_fourcc: str | None,
     ) -> None:
-        """
-        ビデオキャプチャの設定を行います。
-
-        :param camera_id: 使用するカメラの ID
-        :param video_width: ビデオの幅
-        :param video_height: ビデオの高さ
-        :param video_fps: ビデオのフレームレート
-        :param video_fourcc: ビデオの FOURCC コード
-        """
+        # CAP_DSHOW を設定しないと、カメラの起動がめちゃめちゃ遅くなる
         if platform.system() == "Windows":
-            # CAP_DSHOW を設定しないと、カメラの起動がめちゃめちゃ遅くなる
             self._video_capture = cv2.VideoCapture(camera_id, cv2.CAP_DSHOW)
         else:
             self._video_capture = cv2.VideoCapture(camera_id)
@@ -110,7 +90,7 @@ class LogoStreamer:
 
         # Ubuntu → FOURCC を設定すると FPS が初期化される
         # Windows → FPS を設定すると FOURCC が初期化される
-        # ので、両方に対応するため２回設定する
+        # ので、両方に対応するため 2 回設定する
         if video_fourcc is not None:
             fourcc = cv2.VideoWriter_fourcc(*video_fourcc)
             target_fourcc = self._video_capture.get(cv2.CAP_PROP_FOURCC)
@@ -121,59 +101,36 @@ class LogoStreamer:
                 self._video_capture.set(cv2.CAP_PROP_FPS, video_fps)
 
     def connect(self) -> None:
-        """
-        Sora への接続を確立します。
-
-        :raises AssertionError: タイムアウト期間内に接続が確立できなかった場合
-        """
         self._connection.connect()
 
-        assert self._connected.wait(timeout=self._default_connection_timeout_s), (
-            "接続に失敗しました"
-        )
+        assert self._connected.wait(timeout=self._default_connection_timeout_s), "Failed to connect"
 
     def disconnect(self) -> None:
-        """Sora から切断します。"""
         self._connection.disconnect()
 
     def _on_disconnect(self, error_code: SoraSignalingErrorCode, message: str) -> None:
-        """
-        切断イベントを処理します。
-
-        :param error_code: 切断のエラーコード
-        :param message: 切断メッセージ
-        """
         print(f"Sora から切断されました: error_code='{error_code}' message='{message}'")
         self._connected.clear()
         self._closed = True
 
     def _on_set_offer(self, raw_message: str) -> None:
-        """
-        オファー設定イベントを処理します。
-
-        :param raw_message: オファーを含む生のメッセージ
-        """
         message = json.loads(raw_message)
         if message["type"] == "offer":
             self._connection_id = message["connection_id"]
 
     def _on_notify(self, raw_message: str) -> None:
-        """
-        Sora からの通知イベントを処理します。
-
-        :param raw_message: 生の通知メッセージ
-        """
         message = json.loads(raw_message)
         if (
             message["type"] == "notify"
             and message["event_type"] == "connection.created"
             and message["connection_id"] == self._connection_id
         ):
-            print(f"Connected Sora: channel_id={self._channel_id}, connection_id={self._connection_id}")
+            print(
+                f"Connected Sora: channel_id={self._channel_id}, connection_id={self._connection_id}"
+            )
             self._connected.set()
 
     def run(self) -> None:
-        """ビデオフレームの処理と送信を行うメインループ。"""
         self.connect()
         try:
             # 顔検出を用意する
@@ -182,7 +139,6 @@ class LogoStreamer:
             ) as face_detection:
                 angle = 0
                 while self._connected.is_set() and self._video_capture.isOpened():
-                    # フレームを取得する
                     success, frame = self._video_capture.read()
                     if not success:
                         continue
@@ -199,20 +155,12 @@ class LogoStreamer:
         angle: int,
         frame: MatLike,  # type: ignore
     ) -> int:
-        """
-        1フレームの処理を行います。
-
-        :param face_detection: 顔検出オブジェクト
-        :param angle: ロゴの回転角度
-        :param frame: 処理するフレーム
-        :return: 更新されたロゴの回転角度
-        """
         # 高速化の呪文
         frame.flags.writeable = False
-        # mediapipe や PIL で処理できるように色の順序を変える
+        # MediaPipe や PIL で処理できるように色の順序を変える
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        # mediapipe で顔を検出する
+        # MediaPipe で顔を検出する
         results = face_detection.process(frame)
 
         frame_height, frame_width, _ = frame.shape
@@ -251,7 +199,7 @@ class LogoStreamer:
                 pil_image.paste(resized_logo, (fixed_x_px, fixed_y_px), resized_logo)
 
         frame.flags.writeable = True
-        # PIL から numpy に画像を戻す
+        # PIL から NumPy に画像を戻す
         frame = np.array(pil_image)
         # 色の順序をもとに戻す
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
@@ -264,78 +212,79 @@ class LogoStreamer:
 def _parse_args(argv: list[str] | None = None):
     parser = EnvPrefixArgumentParser(
         env_prefix="SORA_",
-        description="顔検出してロゴを重ねる Sora sendonly サンプル",
+        description="Sora sendonly example with face detection and logo overlay",
     )
     parser.add_argument(
         "--signaling-url",
         dest="signaling_urls",
         nargs="+",
         metavar="URL",
-        help="Sora シグナリング URL。複数指定可（例: --signaling-url wss://... --signaling-url wss://...）。",
+        help="Sora signaling URL(s). Multiple URLs can be specified using the format: --signaling-url wss://example1.com --signaling-url wss://example2.com",
     )
-    parser.add_argument("--channel-id", dest="channel_id", help="接続するチャンネル ID。")
+    parser.add_argument(
+        "--channel-id",
+        dest="channel_id",
+        help="Sora channel ID to connect to. If not specified, --channel-id-prefix must be provided to generate a channel ID",
+    )
     parser.add_argument(
         "--channel-id-prefix",
         dest="channel_id_prefix",
-        help="チャンネル ID を生成する際に利用するプレフィックス。",
+        help="Prefix string used to generate a unique channel ID. A random suffix will be appended to this prefix",
     )
     parser.add_argument(
         "--metadata",
         dest="metadata",
         type=json_object,
-        help="接続時に送信する JSON 文字列",
+        help='JSON string to be sent as metadata during Sora connection establishment. Must be valid JSON format (e.g., \'{"key": "value"}\')',
     )
     parser.add_argument(
         "--camera-id",
         dest="camera_id",
         type=int,
         default=1,
-        help="使用するカメラの ID",
+        help="Camera device ID to use for video capture. Default is 1. Use 0 for the primary camera, 1 for secondary camera, etc.",
     )
     parser.add_argument(
         "--video-width",
         dest="video_width",
         type=int,
         default=640,
-        help="ビデオの幅",
+        help="Width of the video stream in pixels. Default is 640",
     )
     parser.add_argument(
         "--video-height",
         dest="video_height",
         type=int,
         default=360,
-        help="ビデオの高さ",
+        help="Height of the video stream in pixels. Default is 360",
     )
     parser.add_argument(
         "--video-fps",
         dest="video_fps",
         type=int,
         default=30,
-        help="ビデオのフレームレート",
+        help="Frame rate of the video stream in frames per second. Default is 30",
     )
     parser.add_argument(
         "--video-fourcc",
         dest="video_fourcc",
         default="MJPG",
-        help="ビデオの FOURCC コード",
+        help="FourCC code for video compression format. Default is 'MJPG' (Motion JPEG). Other common options include 'YUYV', 'H264', etc.",
     )
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> None:
-    """
-    コマンドライン引数と環境変数から設定を取得して LogoStreamer を実行します。
-    """
     args = _parse_args(argv)
 
     signaling_urls = args.signaling_urls
     if not signaling_urls:
-        raise ValueError("シグナリング URL が指定されていません")
+        raise ValueError("Signaling URL is not specified")
 
     channel_id = resolve_channel_id(args.channel_id, args.channel_id_prefix)
 
     if args.camera_id is None:
-        raise ValueError("カメラ ID を整数で指定してください")
+        raise ValueError("Camera ID must be specified as an integer")
 
     streamer = LogoStreamer(
         signaling_urls=signaling_urls,

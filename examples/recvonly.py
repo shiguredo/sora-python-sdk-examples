@@ -1,9 +1,10 @@
 import json
-import queue
-from threading import Event
+import math
+from threading import Event, Lock
 from typing import Any
 
 import cv2  # type: ignore
+import numpy as np
 import sounddevice  # type: ignore
 from helpers import (
     EnvPrefixArgumentParser,
@@ -25,8 +26,6 @@ from sora_sdk import (
 
 
 class Recvonly:
-    """Sora からビデオと音声ストリームを受信するためのクラス。"""
-
     def __init__(
         self,
         signaling_urls: list[str],
@@ -39,26 +38,19 @@ class Recvonly:
         video_codec_preference: SoraVideoCodecPreference | None = None,
         output_frequency: int = 16000,
         output_channels: int = 1,
+        grid_cols: int = 3,
     ):
-        """
-        Recvonly インスタンスを初期化します。
-
-        このクラスは Sora への接続を設定し、音声とビデオトラックを受信し、
-        ビデオフレームの表示と音声の再生を行うメソッドを提供します。
-
-        :param signaling_urls: Sora シグナリング URL のリスト
-        :param channel_id: 接続するチャンネル ID
-        :param metadata: 接続のためのオプションのメタデータ
-        :param openh264: OpenH264 ライブラリへのパス
-        :param output_frequency: 音声出力周波数（Hz）、デフォルトは 16000
-        :param output_channels: 音声出力チャンネル数、デフォルトは 1
-        """
         self._signaling_urls: list[str] = signaling_urls
         self._channel_id: str = channel_id
 
+        # 音声出力設定
         self._output_frequency: int = output_frequency
         self._output_channels: int = output_channels
 
+        # グリッド表示設定
+        self._grid_cols: int = grid_cols
+
+        # Sora 接続
         self._sora: Sora = Sora(
             openh264=openh264_path, video_codec_preference=video_codec_preference
         )
@@ -71,15 +63,25 @@ class Recvonly:
         )
         self._connection_id: str | None = None
 
+        # 接続状態管理
         self._connected: Event = Event()
         self._switched: bool = False
         self._closed: Event = Event()
         self._default_connection_timeout_s: float = 10.0
 
+        # 音声・映像シンク
         self._audio_sink: SoraAudioSink | None = None
-        self._video_sink: SoraVideoSink | None = None
+        self._video_sinks: dict[str, SoraVideoSink] = {}
 
-        self._q_out: queue.Queue = queue.Queue()
+        # connection_id をキーとしてフレームを管理
+        self._video_frames: dict[str, np.ndarray] = {}
+        self._video_frames_lock: Lock = Lock()
+
+        # track_id から connection_id へのマッピング
+        self._track_to_connection: dict[str, str] = {}
+
+        # connection_id の出現順序を記録（グリッド位置を固定するため）
+        self._connection_order: list[str] = []
 
         self._connection.on_set_offer = self._on_set_offer
         self._connection.on_switched = self._on_switched
@@ -88,11 +90,6 @@ class Recvonly:
         self._connection.on_track = self._on_track
 
     def connect(self) -> None:
-        """
-        Sora への接続を確立します。
-
-        :raises AssertionError: タイムアウト期間内に接続が確立できなかった場合
-        """
         self._connection.connect()
 
         assert self._connected.wait(self._default_connection_timeout_s), (
@@ -100,7 +97,6 @@ class Recvonly:
         )
 
     def disconnect(self) -> None:
-        """Sora から切断します。"""
         self._connection.disconnect()
 
     def get_stats(self):
@@ -113,20 +109,13 @@ class Recvonly:
 
     @property
     def switched(self) -> bool:
-        """データチャネルシグナリングへの切り替えが完了しているかどうかを示すブール値。"""
         return self._switched
 
     @property
     def closed(self):
-        """接続が閉じられているかどうかを示すブール値。"""
         return self._closed.is_set()
 
     def _on_set_offer(self, raw_message: str) -> None:
-        """
-        オファー設定イベントを処理します。
-
-        :param raw_message: オファーを含む生のメッセージ
-        """
         message: dict[str, Any] = json.loads(raw_message)
         if message["type"] == "offer":
             self._connection_id = message["connection_id"]
@@ -138,62 +127,167 @@ class Recvonly:
             self._switched = True
 
     def _on_notify(self, raw_message: str) -> None:
-        """
-        Sora からの通知イベントを処理します。
-
-        :param raw_message: 生の通知メッセージ
-        """
         message: dict[str, Any] = json.loads(raw_message)
-        if (
-            message["type"] == "notify"
-            and message["event_type"] == "connection.created"
-            and message["connection_id"] == self._connection_id
-        ):
-            print(f"Connected Sora: channel_id={self._channel_id}, connection_id={self._connection_id}")
-            self._connected.set()
+
+        if message["type"] == "notify":
+            event_type = message.get("event_type")
+            connection_id = message.get("connection_id")
+
+            # 接続作成イベント
+            if event_type == "connection.created":
+                if connection_id == self._connection_id:
+                    # 自分の接続の場合
+                    print(
+                        f"Connected Sora: channel_id={self._channel_id}, connection_id={self._connection_id}"
+                    )
+                    self._connected.set()
+                else:
+                    # 他の接続の場合、順序を記録
+                    with self._video_frames_lock:
+                        if connection_id not in self._connection_order:
+                            self._connection_order.append(connection_id)
+                            print(f"New connection detected: connection_id={connection_id}")
+
+            # 接続切断イベント
+            elif event_type == "connection.destroyed":
+                if connection_id and connection_id != self._connection_id:
+                    with self._video_frames_lock:
+                        # フレームを削除
+                        if connection_id in self._video_frames:
+                            del self._video_frames[connection_id]
+
+                        # 順序から削除
+                        if connection_id in self._connection_order:
+                            self._connection_order.remove(connection_id)
+
+                        # 関連する track と sink を削除
+                        tracks_to_remove = [
+                            track_id
+                            for track_id, conn_id in self._track_to_connection.items()
+                            if conn_id == connection_id
+                        ]
+                        for track_id in tracks_to_remove:
+                            del self._track_to_connection[track_id]
+                            if track_id in self._video_sinks:
+                                del self._video_sinks[track_id]
+
+                        print(f"Connection removed: connection_id={connection_id}")
 
     def _on_disconnect(self, error_code: SoraSignalingErrorCode, message: str) -> None:
-        """
-        切断イベントを処理します。
-
-        :param error_code: 切断のエラーコード
-        :param message: 切断メッセージ
-        """
         print(f"Disconnected Sora: error_code='{error_code}' message='{message}'")
         self._connected.clear()
         self._closed.is_set()
 
-    def _on_video_frame(self, frame: SoraVideoFrame) -> None:
-        """
-        受信したビデオフレームを処理します。
+    def _create_video_frame_callback(self, connection_id: str):
+        def callback(frame: SoraVideoFrame) -> None:
+            with self._video_frames_lock:
+                # frame.data() のコピーを作成して保存（バッファ共有を防ぐ）
+                self._video_frames[connection_id] = frame.data().copy()
 
-        :param frame: 受信したビデオフレーム
-        """
-        self._q_out.put(frame)
+        return callback
 
     def _on_track(self, track: SoraMediaTrack) -> None:
-        """
-        新しいメディアトラックを処理します。
-
-        :param track: 新しいメディアトラック
-        """
+        # 音声トラック
         if track.kind == "audio":
             self._audio_sink = SoraAudioSink(track, self._output_frequency, self._output_channels)
+
+        # ビデオトラック
         if track.kind == "video":
-            self._video_sink = SoraVideoSink(track)
-            self._video_sink.on_frame = self._on_video_frame
+            track_id = track.id
+
+            # track_id から connection_id を抽出
+            # 例: "J2ZJCZK9R90KDDN7CDNPS8FMR4-video" -> "J2ZJCZK9R90KDDN7CDNPS8FMR4"
+            if "-" not in track_id:
+                raise ValueError(
+                    f"Invalid track_id format: {track_id}. Expected format: 'connection_id-video'"
+                )
+
+            connection_id = track_id.rsplit("-", 1)[0]
+
+            # マッピングを保存
+            self._track_to_connection[track_id] = connection_id
+
+            # connection_id の順序を記録
+            with self._video_frames_lock:
+                if connection_id not in self._connection_order:
+                    self._connection_order.append(connection_id)
+
+            # video sink を作成
+            video_sink = SoraVideoSink(track)
+            video_sink.on_frame = self._create_video_frame_callback(connection_id)
+            self._video_sinks[track_id] = video_sink
+            print(f"Video track added: track_id={track_id}, connection_id={connection_id}")
+
+    def _create_grid_image(
+        self,
+        frames_dict: dict[str, np.ndarray],
+        connection_order: list[str],
+        cell_width: int = 320,
+        cell_height: int = 240,
+    ) -> np.ndarray | None:
+        if not frames_dict:
+            return None
+
+        # connection_order に基づいてフレームを順序付け（フレームが存在するもののみ）
+        ordered_items = [
+            (conn_id, frames_dict[conn_id])
+            for conn_id in connection_order
+            if conn_id in frames_dict
+        ]
+
+        if not ordered_items:
+            return None
+
+        num_frames = len(ordered_items)
+
+        # グリッドの行数と列数を計算
+        cols = min(self._grid_cols, num_frames)
+        rows = math.ceil(num_frames / cols)
+
+        # パディング
+        padding = 5
+
+        # グリッド全体のサイズを計算
+        grid_width = cols * cell_width + (cols + 1) * padding
+        grid_height = rows * cell_height + (rows + 1) * padding
+
+        # 黒い背景の画像を作成
+        grid_image = np.zeros((grid_height, grid_width, 3), dtype=np.uint8)
+
+        # 各フレームをグリッドに配置
+        for idx, (connection_id, frame) in enumerate(ordered_items):
+            row = idx // cols
+            col = idx % cols
+
+            # フレームをリサイズ
+            resized_frame = cv2.resize(frame, (cell_width, cell_height))
+
+            # 配置位置を計算
+            y_start = row * cell_height + (row + 1) * padding
+            y_end = y_start + cell_height
+            x_start = col * cell_width + (col + 1) * padding
+            x_end = x_start + cell_width
+
+            # フレームを配置
+            grid_image[y_start:y_end, x_start:x_end] = resized_frame
+
+            # connection_id をラベルとして表示
+            cv2.putText(
+                grid_image,
+                connection_id,
+                (x_start + 5, y_start + 20),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.4,
+                (255, 255, 255),
+                1,
+                cv2.LINE_AA,
+            )
+
+        return grid_image
 
     def _callback(
         self, outdata: ndarray, frames: int, time: Any, status: sounddevice.CallbackFlags
     ) -> None:
-        """
-        音声出力のためのコールバック関数。
-
-        :param outdata: 音声データを格納する出力バッファ
-        :param frames: 処理するフレーム数
-        :param time: タイミング情報（未使用）
-        :param status: ストリームのステータス
-        """
         if self._audio_sink is not None:
             success, data = self._audio_sink.read(frames)
             if success:
@@ -204,7 +298,7 @@ class Recvonly:
                 print("Unable to obtain audio data")
 
     def run(self) -> None:
-        """ビデオフレームの受信と表示、および音声の再生を行うメインループ。"""
+        # 音声出力ストリームを開始
         with sounddevice.OutputStream(
             channels=self._output_channels,
             callback=self._callback,
@@ -214,12 +308,21 @@ class Recvonly:
             self.connect()
             try:
                 while self._connected.is_set():
-                    try:
-                        frame = self._q_out.get(timeout=1)
-                    except queue.Empty:
-                        continue
-                    cv2.imshow("frame", frame.data())
-                    if cv2.waitKey(1) & 0xFF == ord("q"):
+                    # フレーム辞書と順序のコピーを取得
+                    with self._video_frames_lock:
+                        frames_snapshot = self._video_frames.copy()
+                        connection_order_snapshot = self._connection_order.copy()
+
+                    # グリッド画像を生成して表示
+                    if frames_snapshot:
+                        grid_image = self._create_grid_image(
+                            frames_snapshot, connection_order_snapshot
+                        )
+                        if grid_image is not None:
+                            cv2.imshow("Sora Recvonly - Grid View", grid_image)
+
+                    # 'q' キーで終了
+                    if cv2.waitKey(30) & 0xFF == ord("q"):
                         break
             except KeyboardInterrupt:
                 pass
@@ -231,56 +334,68 @@ class Recvonly:
 def _parse_args(argv: list[str] | None = None):
     parser = EnvPrefixArgumentParser(
         env_prefix="SORA_",
-        description="Sora から映像・音声を受信する recvonly サンプル",
+        description="Sora recvonly sample application for receiving video and audio streams",
     )
     parser.add_argument(
         "--signaling-url",
         dest="signaling_urls",
         nargs="+",
         metavar="URL",
-        help="Sora シグナリング URL。複数指定可（例: --signaling-url wss://... --signaling-url wss://...）。",
+        help="Sora signaling URL(s). Multiple URLs can be specified for redundancy (e.g., --signaling-url wss://example.com/signaling --signaling-url wss://backup.com/signaling)",
     )
-    parser.add_argument("--channel-id", dest="channel_id", help="接続するチャンネル ID")
+    parser.add_argument(
+        "--channel-id",
+        dest="channel_id",
+        help="Sora channel ID to connect to. This identifies the communication channel where video and audio streams are exchanged",
+    )
     parser.add_argument(
         "--channel-id-prefix",
         dest="channel_id_prefix",
-        help="チャンネル ID を生成する際に利用するプレフィックス",
+        help="Prefix used to generate a unique channel ID. If specified, a random suffix will be appended to create the full channel ID",
     )
     parser.add_argument(
         "--metadata",
         dest="metadata",
         type=json_object,
-        help="接続時に送信する JSON 文字列",
+        help='JSON metadata to send when connecting to Sora. Must be valid JSON format (e.g., \'{"key": "value"}\')',
     )
     parser.add_argument(
         "--output-frequency",
         dest="output_frequency",
         type=int,
         default=16000,
-        help="音声出力周波数 (Hz)",
+        help="Audio output sampling frequency in Hz. Default is 16000 Hz. Common values are 8000, 16000, 24000, or 48000",
     )
     parser.add_argument(
         "--output-channels",
         dest="output_channels",
         type=int,
         default=1,
-        help="音声出力チャンネル数",
+        help="Number of audio output channels. Default is 1 (mono). Set to 2 for stereo output",
     )
     parser.add_argument(
         "--data-channel-signaling",
         dest="data_channel_signaling",
         action="store_true",
         default=None,
-        help="データチャネルシグナリングを有効にします",
+        help="Enable data channel signaling instead of WebSocket signaling. When enabled, signaling messages are sent over WebRTC data channels after initial connection",
     )
-    parser.add_argument("--openh264-path", dest="openh264_path", help="OpenH264 ライブラリへのパス")
+    parser.add_argument(
+        "--openh264-path",
+        dest="openh264_path",
+        help="Path to the OpenH264 library file for H.264 video decoding. Required when receiving H.264 encoded video streams",
+    )
+    parser.add_argument(
+        "--grid-cols",
+        dest="grid_cols",
+        type=int,
+        default=3,
+        help="Number of columns in the grid layout for displaying multiple video streams. Default is 3. Videos will wrap to the next row when this limit is reached",
+    )
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> None:
-    """
-    コマンドライン引数および環境変数から設定を取得し、Recvonly を実行します。
-    """
     args = _parse_args(argv)
 
     signaling_urls = args.signaling_urls
@@ -306,6 +421,7 @@ def main(argv: list[str] | None = None) -> None:
         video_codec_preference=video_codec_preference,
         output_frequency=args.output_frequency,
         output_channels=args.output_channels,
+        grid_cols=args.grid_cols,
     )
     recvonly_instance.run()
 

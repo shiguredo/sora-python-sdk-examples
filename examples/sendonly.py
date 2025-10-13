@@ -24,13 +24,6 @@ from sora_sdk import (
 
 
 class Sendonly:
-    """
-    Sora にビデオと音声ストリームを送信するためのクラス。
-
-    このクラスは Sora への接続を設定し、カメラからのビデオと
-    マイクからの音声を Sora に送信するメソッドを提供します。
-    """
-
     def __init__(
         self,
         signaling_urls: list[str],
@@ -50,40 +43,31 @@ class Sendonly:
         video_capture: cv2.VideoCapture | None = None,
         show_preview: bool = False,
     ):
-        """
-        Sendonly インスタンスを初期化します。
-
-        :param signaling_urls: Sora シグナリング URL のリスト
-        :param channel_id: 接続するチャンネル ID
-        :param metadata: 接続のためのオプションのメタデータ
-        :param audio: 音声ストリームを送信するかどうか
-        :param video: ビデオストリームを送信するかどうか
-        :param video_codec_type: 使用するビデオコーデックの種類
-        :param video_bit_rate: ビデオのビットレート
-        :param openh264_path: OpenH264 ライブラリへのパス
-        :param audio_channels: 音声チャンネル数（デフォルト: 1）
-        :param audio_sample_rate: 音声サンプリングレート（デフォルト: 16000）
-        :param video_capture: カメラからのビデオキャプチャ
-        """
+        # Sora 接続設定
         self._signaling_urls: list[str] = signaling_urls
         self._channel_id: str = channel_id
 
+        # 音声設定
         self._audio_channels: int = audio_channels
         self._audio_sample_rate: int = audio_sample_rate
 
+        # Sora SDK インスタンス
         self._sora: Sora = Sora(
             video_codec_preference=video_codec_preference,
             openh264=openh264_path,
         )
 
+        # フェイクストリーム用スレッド
         self._fake_audio_thread: threading.Thread | None = None
         self._fake_video_thread: threading.Thread | None = None
 
+        # 音声・映像ソースの生成
         self._audio_source = self._sora.create_audio_source(
             self._audio_channels, self._audio_sample_rate
         )
         self._video_source = self._sora.create_video_source()
 
+        # Sora への接続を作成
         self._connection: SoraConnection = self._sora.create_connection(
             signaling_urls=signaling_urls,
             role="sendonly",
@@ -99,45 +83,46 @@ class Sendonly:
         )
         self._connection_id: str | None = None
 
+        # 接続状態管理
         self._connected: Event = Event()
         self._switched: bool = False
         self._closed: Event = Event()
         self._default_connection_timeout_s: float = 10.0
 
+        # コールバック設定
         self._connection.on_set_offer = self._on_set_offer
         self._connection.on_switched = self._on_switched
         self._connection.on_notify = self._on_notify
         self._connection.on_disconnect = self._on_disconnect
 
+        # プレビュー設定
         self._show_preview: bool = show_preview
 
+        # ビデオキャプチャの検証
         if video_capture is not None:
             self._video_capture = video_capture
         else:
             raise ValueError("video_capture must be provided for Sendonly")
 
     def connect(self, fake_audio=False, fake_video=False) -> None:
-        """
-        Sora への接続を確立します。
-
-        :raises AssertionError: タイムアウト期間内に接続が確立できなかった場合
-        """
         self._connection.connect()
 
+        # フェイク音声スレッドの起動
         if fake_audio:
             self._fake_audio_thread = threading.Thread(target=self._fake_audio_loop, daemon=True)
             self._fake_audio_thread.start()
 
+        # フェイク映像スレッドの起動
         if fake_video:
             self._fake_video_thread = threading.Thread(target=self._fake_video_loop, daemon=True)
             self._fake_video_thread.start()
 
+        # 接続完了を待機
         assert self._connected.wait(self._default_connection_timeout_s), (
             "Could not connect to Sora."
         )
 
     def disconnect(self) -> None:
-        """Sora から切断します。"""
         self._connection.disconnect()
 
     def get_stats(self):
@@ -153,21 +138,18 @@ class Sendonly:
         return self._switched
 
     def _fake_audio_loop(self):
+        # 20ms ごとに無音データを送信
         while not self._closed.is_set():
             time.sleep(0.02)
             self._audio_source.on_data(numpy.zeros((320, 1), dtype=numpy.int16))
 
     def _fake_video_loop(self):
+        # 30fps で黒いフレームを送信
         while not self._closed.is_set():
             time.sleep(1.0 / 30)
             self._video_source.on_captured(numpy.zeros((480, 640, 3), dtype=numpy.uint8))
 
     def _on_set_offer(self, raw_message: str) -> None:
-        """
-        オファー設定イベントを処理します。
-
-        :param raw_message: オファーを含む生のメッセージ
-        """
         message: dict[str, Any] = json.loads(raw_message)
         if message["type"] == "offer":
             self._connection_id = message["connection_id"]
@@ -179,31 +161,24 @@ class Sendonly:
             self._switched = True
 
     def _on_notify(self, raw_message: str) -> None:
-        """
-        Sora からの通知イベントを処理します。
-
-        :param raw_message: 生の通知メッセージ
-        """
         message: dict[str, Any] = json.loads(raw_message)
+        # connection.created イベントで接続完了を検知
         if (
             message["type"] == "notify"
             and message["event_type"] == "connection.created"
             and message["connection_id"] == self._connection_id
         ):
-            print(f"Connected Sora: channel_id={self._channel_id}, connection_id={self._connection_id}")
+            print(
+                f"Connected Sora: channel_id={self._channel_id}, connection_id={self._connection_id}"
+            )
             self._connected.set()
 
     def _on_disconnect(self, error_code: SoraSignalingErrorCode, message: str) -> None:
-        """
-        切断イベントを処理します。
-
-        :param error_code: 切断のエラーコード
-        :param message: 切断メッセージ
-        """
         print(f"Disconnected Sora: error_code='{error_code}' message='{message}'")
         self._connected.clear()
         self._closed.set()
 
+        # フェイクストリームスレッドの終了を待機
         if self._fake_audio_thread is not None:
             self._fake_audio_thread.join(timeout=10)
 
@@ -213,20 +188,10 @@ class Sendonly:
     def _sounddevice_input_stream_callback(
         self, indata: ndarray, frames: int, time: Any, status: sounddevice.CallbackFlags
     ) -> None:
-        """
-        音声入力のためのコールバック関数。
-
-        :param indata: 入力された音声データ
-        :param frames: 処理するフレーム数
-        :param time: タイミング情報（未使用）
-        :param status: ステータスフラグ
-        """
         self._audio_source.on_data(indata)
 
     def run(self) -> None:
-        """
-        ビデオフレームの送信と音声の送信を行うメインループ。
-        """
+        # 音声入力ストリームを開始
         with sounddevice.InputStream(
             samplerate=self._audio_sample_rate,
             channels=self._audio_channels,
@@ -240,6 +205,7 @@ class Sendonly:
                     if not success:
                         continue
                     self._video_source.on_captured(frame)
+                    # プレビュー表示
                     if self._show_preview:
                         cv2.imshow("Sendonly Preview", frame)
                         if cv2.waitKey(1) & 0xFF == ord("q"):
@@ -260,18 +226,8 @@ def get_video_capture(
     video_fps: int,
     video_fourcc: str,
 ) -> cv2.VideoCapture:
-    """
-    ビデオキャプチャの設定を行います。
-
-    :param camera_id: 使用するカメラの ID
-    :param video_width: ビデオの幅
-    :param video_height: ビデオの高さ
-    :param video_fps: ビデオのフレームレート
-    :param video_fourcc: ビデオの FOURCC コード
-    """
-
+    # Windows の場合は CAP_DSHOW を設定しないとカメラの起動が遅くなる
     if platform.system() == "Windows":
-        # CAP_DSHOW を設定しないと、カメラの起動がめちゃめちゃ遅くなる
         video_capture = cv2.VideoCapture(camera_id, cv2.CAP_DSHOW)
     else:
         video_capture = cv2.VideoCapture(camera_id)
@@ -285,9 +241,9 @@ def get_video_capture(
     if video_fps is not None:
         video_capture.set(cv2.CAP_PROP_FPS, video_fps)
 
-    # Ubuntu → FOURCC を設定すると FPS が初期化される
-    # Windows → FPS を設定すると FOURCC が初期化される
-    # ので、両方に対応するため２回設定する
+    # Ubuntu では FOURCC を設定すると FPS が初期化される
+    # Windows では FPS を設定すると FOURCC が初期化される
+    # 両方の OS に対応するため、設定が反映されていなければ再設定する
     if video_fourcc is not None:
         fourcc = cv2.VideoWriter_fourcc(*video_fourcc)
         target_fourcc = video_capture.get(cv2.CAP_PROP_FOURCC)
@@ -303,90 +259,94 @@ def get_video_capture(
 def _parse_args(argv: list[str] | None = None):
     parser = EnvPrefixArgumentParser(
         env_prefix="SORA_",
-        description="Sora に対して映像と音声を送信する sendonly サンプル",
+        description="Sendonly sample that sends video and audio to Sora",
     )
     parser.add_argument(
         "--signaling-url",
         dest="signaling_urls",
         nargs="+",
         metavar="URL",
-        help="Sora シグナリング URL。複数指定可（例: --signaling-url wss://... --signaling-url wss://...）。",
+        help="Sora signaling URL(s). Multiple URLs can be specified (e.g., --signaling-url wss://... --signaling-url wss://...)",
     )
-    parser.add_argument("--channel-id", dest="channel_id", help="接続するチャンネル ID")
+    parser.add_argument(
+        "--channel-id",
+        dest="channel_id",
+        help="Channel ID to connect to",
+    )
     parser.add_argument(
         "--channel-id-prefix",
         dest="channel_id_prefix",
-        help="チャンネル ID を生成する際に利用するプレフィックス",
+        help="Prefix used when generating a channel ID automatically",
     )
     parser.add_argument(
         "--metadata",
         dest="metadata",
         type=json_object,
-        help="接続時に送信する JSON 文字列",
+        help="Metadata to send during connection as a JSON string",
     )
     parser.add_argument(
         "--video-codec-type",
         dest="video_codec_type",
         choices=["VP8", "VP9", "AV1", "H264", "H265"],
         default="VP9",
-        help="使用するビデオコーデックの種類",
+        help="Video codec type to use for encoding",
     )
     parser.add_argument(
         "--video-bit-rate",
         dest="video_bit_rate",
         type=int,
         default=500,
-        help="ビデオのビットレート (kbps)",
+        help="Video bitrate in kbps (kilobits per second)",
     )
     parser.add_argument(
         "--video-width",
         dest="video_width",
         type=int,
         default=640,
-        help="ビデオの幅",
+        help="Video frame width in pixels",
     )
     parser.add_argument(
         "--video-height",
         dest="video_height",
         type=int,
         default=360,
-        help="ビデオの高さ",
+        help="Video frame height in pixels",
     )
     parser.add_argument(
         "--video-fps",
         dest="video_fps",
         type=int,
         default=30,
-        help="ビデオのフレームレート",
+        help="Video frame rate (frames per second)",
     )
     parser.add_argument(
         "--video-fourcc",
         dest="video_fourcc",
         default="MJPG",
-        help="ビデオの FOURCC コード",
+        help="Video FOURCC code for camera capture (e.g., MJPG, YUYV)",
     )
     parser.add_argument(
         "--camera-id",
         dest="camera_id",
         type=int,
         default=0,
-        help="使用するカメラの ID",
+        help="Camera device ID to use for video capture",
     )
-    parser.add_argument("--openh264-path", dest="openh264_path", help="OpenH264 ライブラリへのパス")
+    parser.add_argument(
+        "--openh264-path",
+        dest="openh264_path",
+        help="Path to the OpenH264 library file for H.264 encoding",
+    )
     parser.add_argument(
         "--show-preview",
         dest="show_preview",
         action="store_true",
-        help="送信中の映像をプレビュー表示します",
+        help="Display a preview window showing the video being sent",
     )
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> None:
-    """
-    コマンドライン引数を設定しておき、必要に応じて環境変数で上書きしながら
-    Sendonly インスタンスを構築し実行します。
-    """
     args = _parse_args(argv)
 
     signaling_urls = args.signaling_urls
