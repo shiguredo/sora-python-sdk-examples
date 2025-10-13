@@ -20,8 +20,8 @@ jobs:
     strategy:
       matrix:
         # mediapipe が Python 3.13 以降に対応していない
-        # python_version: ["3.11", "3.12", "3.13", "3.14"]
-        python_version: ["3.11", "3.12"]
+        # python_version: ["3.12", "3.13", "3.14"]
+        python_version: ["3.12"]
         os: ["ubuntu-22.04", "ubuntu-24.04"]
     runs-on: ${{ matrix.os}}
     timeout-minutes: 15
@@ -74,8 +74,8 @@ jobs:
     strategy:
       matrix:
         # mediapipe が Python 3.13 に対応していない
-        # python_version: ["3.11", "3.12", "3.13"]
-        python_version: ["3.11", "3.12"]
+        # python_version: ["3.11", "3.12", "3.13", "3.14"]
+        python_version: ["3.12"]
         # macos-13 は test_macos.py が上手くテストが動かないのでスキップ
         os: ["macos-14", "macos-15"]
     runs-on: ${{ matrix.os }}
@@ -99,9 +99,9 @@ jobs:
     strategy:
       matrix:
         # mediapipe が Python 3.13 に対応していない
-        # python_version: ["3.11", "3.12", "3.13"]
-        python_version: ["3.11", "3.12"]
-    runs-on: windows-2022
+        # python_version: ["3.12", "3.13", "3.14"]
+        python_version: ["3.12"]
+    runs-on: windows-2025
     timeout-minutes: 15
     env:
       # Python を強制的に UTF-8 で利用するおまじない
