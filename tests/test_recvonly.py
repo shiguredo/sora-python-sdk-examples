@@ -1,8 +1,7 @@
-import sys
 import time
 import uuid
 
-from media_recvonly import Recvonly
+from recvonly import Recvonly
 
 
 def test_recvonly(setup) -> None:
@@ -10,7 +9,7 @@ def test_recvonly(setup) -> None:
     channel_id_prefix = setup.get("channel_id_prefix")
     metadata = setup.get("metadata")
 
-    channel_id = f"{channel_id_prefix}{__name__}_{sys._getframe().f_code.co_name}_{uuid.uuid4()}"
+    channel_id = f"{channel_id_prefix}{uuid.uuid4()}"
 
     recvonly = Recvonly(
         signaling_urls=signaling_urls,

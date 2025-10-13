@@ -1,42 +1,39 @@
 [project]
-name = "sora-sdk-examples"
+name = "sora-python-sdk-examples"
 version = "0.0.0"
-description = "Sora Python SDK Examples"
+description = "Sora Python SDK examples collection"
+readme = "README.md"
 authors = [{ name = "Shiguredo Inc." }]
-license = { file = "LICENSE" }
+requires-python = ">=3.12"
 dependencies = [
-    "sora-sdk==2025.4.0",
-    "opencv-python>=4.11",
-    "opencv-python-headless>=4.11",
+    "sora-sdk==2025.5.0.dev7",
+    "opencv-python>=4.12",
+    "opencv-python-headless>=4.12",
     "sounddevice>=0.5",
     "mediapipe>=0.10.14",
     "python-dotenv>=1.0",
     "numpy>=2.2",
-    "pillow>=10.4",
+    "pillow>=11.3",
 ]
-readme = "README.md"
-requires-python = ">= 3.11"
+
+[dependency-groups]
+dev = ["pytest", "pytest-timeout"]
+lint = ["ruff", "ty"]
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.metadata]
-allow-direct-references = true
-
-[tool.hatch.build.targets.wheel]
-packages = ["src"]
+requires = ["uv_build"]
+build-backend = "uv_build"
 
 [tool.uv]
 package = false
 managed = true
 python-preference = "only-managed"
-dev-dependencies = ["ruff", "mypy", "pytest"]
+default-groups = ["dev", "lint"]
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py312"
 line-length = 100
 
 [tool.pytest.ini_options]
-pythonpath = "src/"
-testpaths = "tests/"
+pythonpath = ["examples"]
+testpaths = ["tests"]

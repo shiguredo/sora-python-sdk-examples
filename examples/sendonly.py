@@ -1,15 +1,20 @@
+import argparse
 import json
-import os
 import platform
 import threading
 import time
 from threading import Event
-from typing import Any, Optional
+from typing import Any
 
 import cv2  # type: ignore
 import numpy
 import sounddevice  # type: ignore
 from dotenv import load_dotenv
+from helpers import (
+    get_config_value,
+    get_video_codec_preference,
+    resolve_channel_id,
+)
 from numpy import ndarray
 from sora_sdk import (
     Sora,
@@ -18,7 +23,84 @@ from sora_sdk import (
     SoraVideoCodecPreference,
 )
 
-from misc import get_video_codec_preference
+
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Sora に対して映像と音声を送信する sendonly サンプル",
+    )
+    parser.add_argument(
+        "--signaling-url",
+        dest="signaling_urls",
+        action="append",
+        help="Sora シグナリング URL。複数指定可（例: --signaling-url wss://... --signaling-url wss://...）。",
+    )
+    parser.add_argument(
+        "--channel-id",
+        dest="channel_id",
+        help="接続するチャンネル ID。",
+    )
+    parser.add_argument(
+        "--channel-id-prefix",
+        dest="channel_id_prefix",
+        help="チャンネル ID を生成する際に利用するプレフィックス。",
+    )
+    parser.add_argument(
+        "--metadata",
+        dest="metadata",
+        help="接続時に送信する JSON 文字列。",
+    )
+    parser.add_argument(
+        "--video-codec-type",
+        dest="video_codec_type",
+        help="使用するビデオコーデックの種類。",
+    )
+    parser.add_argument(
+        "--video-bit-rate",
+        dest="video_bit_rate",
+        type=int,
+        help="ビデオのビットレート (kbps)。",
+    )
+    parser.add_argument(
+        "--video-width",
+        dest="video_width",
+        type=int,
+        help="ビデオの幅。",
+    )
+    parser.add_argument(
+        "--video-height",
+        dest="video_height",
+        type=int,
+        help="ビデオの高さ。",
+    )
+    parser.add_argument(
+        "--video-fps",
+        dest="video_fps",
+        type=int,
+        help="ビデオのフレームレート。",
+    )
+    parser.add_argument(
+        "--video-fourcc",
+        dest="video_fourcc",
+        help="ビデオの FOURCC コード。",
+    )
+    parser.add_argument(
+        "--camera-id",
+        dest="camera_id",
+        type=int,
+        help="使用するカメラの ID。",
+    )
+    parser.add_argument(
+        "--openh264-path",
+        dest="openh264_path",
+        help="OpenH264 ライブラリへのパス。",
+    )
+    parser.add_argument(
+        "--show-preview",
+        dest="show_preview",
+        action="store_true",
+        help="送信中の映像をプレビュー表示します。",
+    )
+    return parser.parse_args(argv)
 
 
 class Sendonly:
@@ -33,17 +115,20 @@ class Sendonly:
         self,
         signaling_urls: list[str],
         channel_id: str,
-        metadata: Optional[dict[str, Any]] = None,
-        audio: Optional[bool] = None,
-        video: Optional[bool] = None,
-        video_codec_type: Optional[str] = None,
-        video_bit_rate: Optional[int] = None,
-        data_channel_signaling: Optional[bool] = None,
-        openh264_path: Optional[str] = None,
-        video_codec_preference: Optional[SoraVideoCodecPreference] = None,
+        /,
+        *,
+        metadata: dict[str, Any] | None = None,
+        audio: bool | None = None,
+        video: bool | None = None,
+        video_codec_type: str | None = None,
+        video_bit_rate: int | None = None,
+        data_channel_signaling: bool | None = None,
+        openh264_path: str | None = None,
+        video_codec_preference: SoraVideoCodecPreference | None = None,
         audio_channels: int = 1,
         audio_sample_rate: int = 16000,
-        video_capture: Optional[cv2.VideoCapture] = None,
+        video_capture: cv2.VideoCapture | None = None,
+        show_preview: bool = False,
     ):
         """
         Sendonly インスタンスを初期化します。
@@ -71,8 +156,8 @@ class Sendonly:
             openh264=openh264_path,
         )
 
-        self._fake_audio_thread: Optional[threading.Thread] = None
-        self._fake_video_thread: Optional[threading.Thread] = None
+        self._fake_audio_thread: threading.Thread | None = None
+        self._fake_video_thread: threading.Thread | None = None
 
         self._audio_source = self._sora.create_audio_source(
             self._audio_channels, self._audio_sample_rate
@@ -92,7 +177,7 @@ class Sendonly:
             audio_source=self._audio_source,
             video_source=self._video_source,
         )
-        self._connection_id: Optional[str] = None
+        self._connection_id: str | None = None
 
         self._connected: Event = Event()
         self._switched: bool = False
@@ -104,8 +189,12 @@ class Sendonly:
         self._connection.on_notify = self._on_notify
         self._connection.on_disconnect = self._on_disconnect
 
+        self._show_preview: bool = show_preview
+
         if video_capture is not None:
             self._video_capture = video_capture
+        else:
+            raise ValueError("video_capture must be provided for Sendonly")
 
     def connect(self, fake_audio=False, fake_video=False) -> None:
         """
@@ -231,11 +320,17 @@ class Sendonly:
                     if not success:
                         continue
                     self._video_source.on_captured(frame)
+                    if self._show_preview:
+                        cv2.imshow("Sendonly Preview", frame)
+                        if cv2.waitKey(1) & 0xFF == ord("q"):
+                            break
             except KeyboardInterrupt:
                 pass
             finally:
                 self.disconnect()
                 self._video_capture.release()
+                if self._show_preview:
+                    cv2.destroyWindow("Sendonly Preview")
 
 
 def get_video_capture(
@@ -285,33 +380,39 @@ def get_video_capture(
     return video_capture
 
 
-def sendonly() -> None:
+def main(argv: list[str] | None = None) -> None:
     """
-    環境変数を使用して Sendonly インスタンスを設定し実行します。
-
-    :raises ValueError: 必要な環境変数が設定されていない場合
+    コマンドライン引数を設定しておき、必要に応じて環境変数で上書きしながら
+    Sendonly インスタンスを構築し実行します。
     """
     load_dotenv()
 
-    if not (raw_signaling_urls := os.getenv("SORA_SIGNALING_URLS")):
-        raise ValueError("環境変数 SORA_SIGNALING_URLS が設定されていません")
-    signaling_urls = raw_signaling_urls.split(",")
+    args = _parse_args(argv)
 
-    if not (channel_id := os.getenv("SORA_CHANNEL_ID")):
-        raise ValueError("環境変数 SORA_CHANNEL_ID が設定されていません")
+    signaling_urls = get_config_value(
+        "SORA_SIGNALING_URLS", args.signaling_urls, required=True, type=list
+    )
+    if not signaling_urls:
+        raise ValueError("シグナリング URL が指定されていません")
 
-    metadata = None
-    if raw_metadata := os.getenv("SORA_METADATA"):
-        metadata = json.loads(raw_metadata)
+    channel_id_raw = get_config_value("SORA_CHANNEL_ID", args.channel_id)
+    channel_id_prefix = get_config_value("SORA_CHANNEL_ID_PREFIX", args.channel_id_prefix)
+    channel_id = resolve_channel_id(channel_id_raw, channel_id_prefix)
 
-    video_codec_type = os.getenv("SORA_VIDEO_CODEC_TYPE", "VP9")
-    video_bit_rate = int(os.getenv("SORA_VIDEO_BIT_RATE", "500"))
-    video_width = int(os.getenv("SORA_VIDEO_WIDTH", "640"))
-    video_height = int(os.getenv("SORA_VIDEO_HEIGHT", "360"))
-    video_fps = int(os.getenv("SORA_VIDEO_FPS", "30"))
-    video_fourcc = os.getenv("SORA_VIDEO_FOURCC", "MJPG")
+    metadata = get_config_value("SORA_METADATA", args.metadata, type="json")
 
-    camera_id = int(os.getenv("SORA_CAMERA_ID", "0"))
+    video_codec_type = get_config_value(
+        "SORA_VIDEO_CODEC_TYPE", args.video_codec_type, default="VP9"
+    )
+    video_bit_rate = get_config_value("SORA_VIDEO_BIT_RATE", args.video_bit_rate, default=500)
+    video_width = get_config_value("SORA_VIDEO_WIDTH", args.video_width, default=640)
+    video_height = get_config_value("SORA_VIDEO_HEIGHT", args.video_height, default=360)
+    video_fps = get_config_value("SORA_VIDEO_FPS", args.video_fps, default=30)
+    video_fourcc = get_config_value("SORA_VIDEO_FOURCC", args.video_fourcc, default="MJPG")
+
+    camera_id = get_config_value("SORA_CAMERA_ID", args.camera_id, default=0)
+    if camera_id is None:
+        raise ValueError("カメラ ID を整数で指定してください")
 
     # OpenCV を利用したビデオキャプチャの設定
     video_capture = get_video_capture(
@@ -322,11 +423,12 @@ def sendonly() -> None:
         video_fourcc=video_fourcc,
     )
 
-    openh264_path = os.getenv("OPENH264_PATH")
+    openh264_path = get_config_value("OPENH264_PATH", args.openh264_path)
+    show_preview = get_config_value("SORA_SHOW_PREVIEW", args.show_preview, default=False, type=bool)
 
     video_codec_preference = get_video_codec_preference(openh264_path)
 
-    sendonly = Sendonly(
+    sendonly_instance = Sendonly(
         signaling_urls,
         channel_id,
         metadata=metadata,
@@ -335,9 +437,10 @@ def sendonly() -> None:
         openh264_path=openh264_path,
         video_codec_preference=video_codec_preference,
         video_capture=video_capture,
+        show_preview=show_preview,
     )
-    sendonly.run()
+    sendonly_instance.run()
 
 
 if __name__ == "__main__":
-    sendonly()
+    main()

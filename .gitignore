@@ -1,7 +1,20 @@
-.venv
-.ruff_cache
-.mypy_cache
 *.pyc
 __pycache__
+
+# uv
+.venv
+dist/
+**/dist/
+
+# mypy
+.mypy_cache/
+
+# pytest
+.pytest_cache/
+
+# ruff
+.ruff_cache
+
+# .env
 .env*
 !.env.template

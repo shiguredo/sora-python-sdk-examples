@@ -1,7 +1,7 @@
+import argparse
 import json
-import os
 from threading import Event
-from typing import Any, Optional
+from typing import Any
 
 from dotenv import load_dotenv
 from sora_sdk import (
@@ -12,11 +12,11 @@ from sora_sdk import (
     SoraVAD,
 )
 
+from helpers import get_config_value, resolve_channel_id
+
 
 class VAD:
-    def __init__(
-        self, signaling_urls: list[str], channel_id: str, metadata: Optional[dict[str, Any]]
-    ):
+    def __init__(self, signaling_urls: list[str], channel_id: str, metadata: dict[str, Any] | None):
         self._signaling_urls: list[str] = signaling_urls
         self._channel_id: str = channel_id
 
@@ -114,32 +114,61 @@ class VAD:
             self.disconnect()
 
 
-def vad() -> None:
-    """
-    環境変数を使用して Sendonly インスタンスを設定し実行します。
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Sora の音声ストリームで VAD を行う recvonly サンプル",
+    )
+    parser.add_argument(
+        "--signaling-url",
+        dest="signaling_urls",
+        action="append",
+        help="Sora シグナリング URL。複数指定可（例: --signaling-url wss://... --signaling-url wss://...）。",
+    )
+    parser.add_argument(
+        "--channel-id",
+        dest="channel_id",
+        help="接続するチャンネル ID。",
+    )
+    parser.add_argument(
+        "--channel-id-prefix",
+        dest="channel_id_prefix",
+        help="チャンネル ID を生成する際に利用するプレフィックス。",
+    )
+    parser.add_argument(
+        "--metadata",
+        dest="metadata",
+        help="接続時に送信する JSON 文字列。",
+    )
+    return parser.parse_args(argv)
 
-    :raises ValueError: 必要な環境変数が設定されていない場合
+
+def main(argv: list[str] | None = None) -> None:
+    """
+    コマンドライン引数および環境変数から設定を取得し、VAD サンプルを実行します。
     """
     load_dotenv()
 
-    if not (raw_signaling_urls := os.getenv("SORA_SIGNALING_URLS")):
-        raise ValueError("環境変数 SORA_SIGNALING_URLS が設定されていません")
-    signaling_urls = raw_signaling_urls.split(",")
+    args = _parse_args(argv)
 
-    if not (channel_id := os.getenv("SORA_CHANNEL_ID")):
-        raise ValueError("環境変数 SORA_CHANNEL_ID が設定されていません")
+    signaling_urls = get_config_value(
+        "SORA_SIGNALING_URLS", args.signaling_urls, required=True, type=list
+    )
+    if not signaling_urls:
+        raise ValueError("シグナリング URL が指定されていません")
 
-    metadata = None
-    if raw_metadata := os.getenv("SORA_METADATA"):
-        metadata = json.loads(raw_metadata)
+    channel_id_raw = get_config_value("SORA_CHANNEL_ID", args.channel_id)
+    channel_id_prefix = get_config_value("SORA_CHANNEL_ID_PREFIX", args.channel_id_prefix)
+    channel_id = resolve_channel_id(channel_id_raw, channel_id_prefix)
 
-    vad = VAD(
+    metadata = get_config_value("SORA_METADATA", args.metadata, type="json")
+
+    vad_instance = VAD(
         signaling_urls,
         channel_id,
         metadata=metadata,
     )
-    vad.run()
+    vad_instance.run()
 
 
 if __name__ == "__main__":
-    vad()
+    main()

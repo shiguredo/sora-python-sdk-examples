@@ -1,12 +1,14 @@
+import argparse
 import json
-import os
 import random
 import time
 from threading import Event
-from typing import Any, Optional
+from typing import Any
 
 from dotenv import load_dotenv
 from sora_sdk import Sora, SoraConnection, SoraSignalingErrorCode
+
+from helpers import get_config_value, resolve_channel_id
 
 
 class Messaging:
@@ -17,7 +19,7 @@ class Messaging:
         signaling_urls: list[str],
         channel_id: str,
         data_channels: list[dict[str, Any]],
-        metadata: Optional[dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ):
         """
         Messaging インスタンスを初期化します。
@@ -43,7 +45,7 @@ class Messaging:
             data_channels=self._data_channels,
             data_channel_signaling=True,
         )
-        self._connection_id: Optional[str] = None
+        self._connection_id: str | None = None
 
         self._connected = Event()
         self._switched: bool = False
@@ -76,9 +78,9 @@ class Messaging:
         """
         self._connection.connect()
 
-        assert self._connected.wait(
-            self._default_connection_timeout_s
-        ), "Could not connect to Sora."
+        assert self._connected.wait(self._default_connection_timeout_s), (
+            "Could not connect to Sora."
+        )
 
     def disconnect(self):
         """Sora から切断します。"""
@@ -184,27 +186,74 @@ class Messaging:
                 break
 
 
-def sendrecv():
-    # .env ファイルを読み込む
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Sora のデータチャネルを使ったメッセージングサンプル",
+    )
+    parser.add_argument(
+        "--signaling-url",
+        dest="signaling_urls",
+        action="append",
+        help="Sora シグナリング URL。複数指定可（例: --signaling-url wss://... --signaling-url wss://...）。",
+    )
+    parser.add_argument(
+        "--channel-id",
+        dest="channel_id",
+        help="接続するチャンネル ID。",
+    )
+    parser.add_argument(
+        "--channel-id-prefix",
+        dest="channel_id_prefix",
+        help="チャンネル ID を生成する際に利用するプレフィックス。",
+    )
+    parser.add_argument(
+        "--messaging-label",
+        dest="messaging_label",
+        help="利用するデータチャネルのラベル。",
+    )
+    parser.add_argument(
+        "--messaging-direction",
+        dest="messaging_direction",
+        choices=["sendrecv", "sendonly", "recvonly"],
+        help="データチャネルの向き（既定: sendrecv）。",
+    )
+    parser.add_argument(
+        "--metadata",
+        dest="metadata",
+        help="接続時に送信する JSON 文字列。",
+    )
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> None:
     load_dotenv()
 
-    # 必須引数
-    if not (raw_signaling_urls := os.getenv("SORA_SIGNALING_URLS")):
-        raise ValueError("環境変数 SORA_SIGNALING_URLS が設定されていません")
-    signaling_urls = raw_signaling_urls.split(",")
+    args = _parse_args(argv)
 
-    if not (channel_id := os.getenv("SORA_CHANNEL_ID")):
-        raise ValueError("環境変数 SORA_CHANNEL_ID が設定されていません")
+    signaling_urls = get_config_value(
+        "SORA_SIGNALING_URLS", args.signaling_urls, required=True, cast="list"
+    )
+    if not signaling_urls:
+        raise ValueError("シグナリング URL が指定されていません")
 
-    if not (messaging_label := os.getenv("SORA_MESSAGING_LABEL")):
-        raise ValueError("環境変数 SORA_MESSAGING_LABEL が設定されていません")
+    channel_id_raw = get_config_value("SORA_CHANNEL_ID", args.channel_id)
+    channel_id_prefix = get_config_value("SORA_CHANNEL_ID_PREFIX", args.channel_id_prefix)
+    channel_id = resolve_channel_id(channel_id_raw, channel_id_prefix)
 
-    # オプション引数
-    metadata = None
-    if raw_metadata := os.getenv("SORA_METADATA"):
-        metadata = json.loads(raw_metadata)
+    messaging_label_raw = get_config_value(
+        "SORA_MESSAGING_LABEL", args.messaging_label, required=True
+    )
+    if messaging_label_raw is None or messaging_label_raw == "":
+        raise ValueError("データチャネルのラベルが指定されていません")
+    messaging_label = str(messaging_label_raw)
 
-    data_channels = [{"label": messaging_label, "direction": "sendrecv"}]
+    messaging_direction = get_config_value(
+        "SORA_MESSAGING_DIRECTION", args.messaging_direction, default="sendrecv"
+    )
+
+    metadata = get_config_value("SORA_METADATA", args.metadata, type="json")
+
+    data_channels = [{"label": messaging_label, "direction": messaging_direction}]
     messaging_sendrecv = Messaging(signaling_urls, channel_id, data_channels, metadata)
 
     # Sora に接続する
@@ -221,4 +270,4 @@ def sendrecv():
 
 
 if __name__ == "__main__":
-    sendrecv()
+    main()

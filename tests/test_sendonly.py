@@ -1,8 +1,7 @@
-import sys
 import time
 import uuid
 
-from media_sendonly import Sendonly
+from sendonly import Sendonly
 
 
 def test_sendonly(setup) -> None:
@@ -10,7 +9,7 @@ def test_sendonly(setup) -> None:
     channel_id_prefix = setup.get("channel_id_prefix")
     metadata = setup.get("metadata")
 
-    channel_id = f"{channel_id_prefix}{__name__}_{sys._getframe().f_code.co_name}_{uuid.uuid4()}"
+    channel_id = f"{channel_id_prefix}{uuid.uuid4()}"
 
     sendonly = Sendonly(
         signaling_urls=signaling_urls,

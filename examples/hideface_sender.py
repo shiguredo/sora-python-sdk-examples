@@ -1,10 +1,10 @@
+import argparse
 import json
 import math
-import os
 import platform
 from pathlib import Path
 from threading import Event
-from typing import Any, Optional
+from typing import Any
 
 import cv2  # type: ignore
 import mediapipe as mp  # type: ignore
@@ -13,6 +13,8 @@ from cv2.typing import MatLike  # type: ignore
 from dotenv import load_dotenv
 from PIL import Image
 from sora_sdk import Sora, SoraSignalingErrorCode, SoraVideoSource
+
+from helpers import get_config_value, resolve_channel_id
 
 
 class LogoStreamer:
@@ -23,12 +25,12 @@ class LogoStreamer:
         signaling_urls: list[str],
         role: str,
         channel_id: str,
-        metadata: Optional[dict[str, Any]],
+        metadata: dict[str, Any] | None,
         camera_id: int,
-        video_width: Optional[int],
-        video_height: Optional[int],
-        video_fps: Optional[int],
-        video_fourcc: Optional[str],
+        video_width: int | None,
+        video_height: int | None,
+        video_fps: int | None,
+        video_fourcc: str | None,
     ):
         """
         LogoStreamer インスタンスを初期化します。
@@ -59,7 +61,7 @@ class LogoStreamer:
             video_bit_rate=500,
             video_source=self._video_source,
         )
-        self._connection_id: Optional[str] = None
+        self._connection_id: str | None = None
 
         self._connected: Event = Event()
         self._closed: bool = False
@@ -77,10 +79,10 @@ class LogoStreamer:
     def _setup_video_capture(
         self,
         camera_id: int,
-        video_width: Optional[int],
-        video_height: Optional[int],
-        video_fps: Optional[int],
-        video_fourcc: Optional[str],
+        video_width: int | None,
+        video_height: int | None,
+        video_fps: int | None,
+        video_fourcc: str | None,
     ) -> None:
         """
         ビデオキャプチャの設定を行います。
@@ -126,9 +128,9 @@ class LogoStreamer:
         """
         self._connection.connect()
 
-        assert self._connected.wait(
-            timeout=self._default_connection_timeout_s
-        ), "接続に失敗しました"
+        assert self._connected.wait(timeout=self._default_connection_timeout_s), (
+            "接続に失敗しました"
+        )
 
     def disconnect(self) -> None:
         """Sora から切断します。"""
@@ -259,34 +261,91 @@ class LogoStreamer:
         return angle
 
 
-def hideface_sender() -> None:
-    """
-    環境変数を使用して LogoStreamer インスタンスを設定し実行します。
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="顔検出してロゴを重ねる Sora sendonly サンプル",
+    )
+    parser.add_argument(
+        "--signaling-url",
+        dest="signaling_urls",
+        action="append",
+        help="Sora シグナリング URL。複数指定可（例: --signaling-url wss://... --signaling-url wss://...）。",
+    )
+    parser.add_argument(
+        "--channel-id",
+        dest="channel_id",
+        help="接続するチャンネル ID。",
+    )
+    parser.add_argument(
+        "--channel-id-prefix",
+        dest="channel_id_prefix",
+        help="チャンネル ID を生成する際に利用するプレフィックス。",
+    )
+    parser.add_argument(
+        "--metadata",
+        dest="metadata",
+        help="接続時に送信する JSON 文字列。",
+    )
+    parser.add_argument(
+        "--camera-id",
+        dest="camera_id",
+        type=int,
+        help="使用するカメラの ID。",
+    )
+    parser.add_argument(
+        "--video-width",
+        dest="video_width",
+        type=int,
+        help="ビデオの幅。",
+    )
+    parser.add_argument(
+        "--video-height",
+        dest="video_height",
+        type=int,
+        help="ビデオの高さ。",
+    )
+    parser.add_argument(
+        "--video-fps",
+        dest="video_fps",
+        type=int,
+        help="ビデオのフレームレート。",
+    )
+    parser.add_argument(
+        "--video-fourcc",
+        dest="video_fourcc",
+        help="ビデオの FOURCC コード。",
+    )
+    return parser.parse_args(argv)
 
-    :raises ValueError: 必要な環境変数が設定されていない場合
+
+def main(argv: list[str] | None = None) -> None:
     """
-    # .env ファイルを読み込む
+    コマンドライン引数と環境変数から設定を取得して LogoStreamer を実行します。
+    """
     load_dotenv()
 
-    # 必須引数
-    if not (raw_signaling_urls := os.getenv("SORA_SIGNALING_URLS")):
-        raise ValueError("環境変数 SORA_SIGNALING_URLS が設定されていません")
-    signaling_urls = raw_signaling_urls.split(",")
+    args = _parse_args(argv)
 
-    if not (channel_id := os.getenv("SORA_CHANNEL_ID")):
-        raise ValueError("環境変数 SORA_CHANNEL_ID が設定されていません")
+    signaling_urls = get_config_value(
+        "SORA_SIGNALING_URLS", args.signaling_urls, required=True, type=list
+    )
+    if not signaling_urls:
+        raise ValueError("シグナリング URL が指定されていません")
 
-    # オプション引数
-    metadata = None
-    if raw_metadata := os.getenv("SORA_METADATA"):
-        metadata = json.loads(raw_metadata)
+    channel_id_raw = get_config_value("SORA_CHANNEL_ID", args.channel_id)
+    channel_id_prefix = get_config_value("SORA_CHANNEL_ID_PREFIX", args.channel_id_prefix)
+    channel_id = resolve_channel_id(channel_id_raw, channel_id_prefix)
 
-    video_width = int(os.getenv("SORA_VIDEO_WIDTH", "640"))
-    video_height = int(os.getenv("SORA_VIDEO_HEIGHT", "360"))
-    video_fps = int(os.getenv("SORA_VIDEO_FPS", "30"))
-    video_fourcc = os.getenv("SORA_VIDEO_FOURCC", "MJPG")
+    metadata = get_config_value("SORA_METADATA", args.metadata, type="json")
 
-    camera_id = int(os.getenv("SORA_CAMERA_ID", "1"))
+    video_width = get_config_value("SORA_VIDEO_WIDTH", args.video_width, default=640)
+    video_height = get_config_value("SORA_VIDEO_HEIGHT", args.video_height, default=360)
+    video_fps = get_config_value("SORA_VIDEO_FPS", args.video_fps, default=30)
+    video_fourcc = get_config_value("SORA_VIDEO_FOURCC", args.video_fourcc, default="MJPG")
+
+    camera_id = get_config_value("SORA_CAMERA_ID", args.camera_id, default=1)
+    if camera_id is None:
+        raise ValueError("カメラ ID を整数で指定してください")
 
     streamer = LogoStreamer(
         signaling_urls=signaling_urls,
@@ -303,4 +362,4 @@ def hideface_sender() -> None:
 
 
 if __name__ == "__main__":
-    hideface_sender()
+    main()

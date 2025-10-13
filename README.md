@@ -7,16 +7,17 @@
 Sora Python SDK のサンプルコードをまとめたリポジトリです。
 
 - Sora Python SDK の最新の安定版を利用しています
-- PyPI に登録されている Sora Python SDK を利用しています
+- PyPI に登録されている Sora Python SDK (sora-sdk) を利用しています
+  - <https://pypi.org/project/sora-sdk/>
 - サンプルコードを利用した E2E テストを実行できます
 
 ## セットアップ
 
-[uv](https://docs.astral.sh/uv/) というパッケージマネージャーを利用しています。
+[uv](https://docs.astral.sh/uv/) を利用しています。
 
 インストール方法は <https://docs.astral.sh/uv/getting-started/installation/> をご確認ください。
 
-### 依存パッケージのビルド
+### 依存パッケージのインストール
 
 ```bash
 uv sync
@@ -24,17 +25,23 @@ uv sync
 
 ## サンプルコードの実行
 
+各サンプルは `examples/<name>.py` として配置されています。例えば `sendonly` サンプルを実行する場合は次のようにします。
+
+```bash
+uv run python examples/sendonly.py
+```
+
+## 環境変数による指定
+
 `.env.template` をコピーして `.env` に必要な変数を設定してください。
 
 ```bash
 cp .env.template .env
 ```
 
-例えば `media_sendonly.py` を実行する場合は以下のコマンドを実行してください。
-
-```bash
-uv run python3 src/media_sendonly.py
-```
+`SORA_CHANNEL_ID_PREFIX` を設定すると、サンプル実行時に自動で `<prefix><UUID>` 形式の
+チャンネル ID が生成されます。明示的にチャンネル ID を指定したい場合は CLI の
+`--channel-id` を利用してください。
 
 ## E2E テストの実行
 
@@ -45,7 +52,7 @@ cp .env.template .env
 ```
 
 ```bash
-uv run pytest tests
+uv run pytest
 ```
 
 ## ライセンス
