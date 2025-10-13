@@ -178,6 +178,18 @@ def json_object(value: str) -> dict[str, Any]:
     return parsed
 
 
+# argparse のカスタム型として文字列を bool に変換する
+def str_to_bool(value: str | bool) -> bool:
+    if isinstance(value, bool):
+        return value
+    if value.lower() in ("yes", "true", "1"):
+        return True
+    elif value.lower() in ("no", "false", "0"):
+        return False
+    else:
+        raise argparse.ArgumentTypeError("Boolean value expected (true/false, yes/no, 1/0)")
+
+
 # ビデオコーデックの優先順位を取得する
 # エンコーダーとデコーダーの両方が利用可能なコーデックのみを含める
 # macOS では OpenH264 を除外する
@@ -219,4 +231,4 @@ def resolve_channel_id(
     if channel_id_prefix not in (None, ""):
         return f"{channel_id_prefix}{uuid4()}"
 
-    raise ValueError("チャンネル ID かプレフィックスを指定してください")
+    raise ValueError("Channel ID or channel ID prefix must be specified")

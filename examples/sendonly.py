@@ -2,6 +2,7 @@ import json
 import platform
 import threading
 import time
+from contextlib import nullcontext
 from threading import Event
 from typing import Any
 
@@ -61,11 +62,19 @@ class Sendonly:
         self._fake_audio_thread: threading.Thread | None = None
         self._fake_video_thread: threading.Thread | None = None
 
-        # 音声・映像ソースの生成
-        self._audio_source = self._sora.create_audio_source(
-            self._audio_channels, self._audio_sample_rate
-        )
-        self._video_source = self._sora.create_video_source()
+        # audio と video の設定を保存
+        self._audio_enabled: bool = audio if audio is not None else True
+        self._video_enabled: bool = video if video is not None else True
+
+        # 音声・映像ソースの生成（有効な場合のみ）
+        self._audio_source = None
+        self._video_source = None
+        if self._audio_enabled:
+            self._audio_source = self._sora.create_audio_source(
+                self._audio_channels, self._audio_sample_rate
+            )
+        if self._video_enabled:
+            self._video_source = self._sora.create_video_source()
 
         # Sora への接続を作成
         self._connection: SoraConnection = self._sora.create_connection(
@@ -99,10 +108,12 @@ class Sendonly:
         self._show_preview: bool = show_preview
 
         # ビデオキャプチャの検証
-        if video_capture is not None:
+        if self._video_enabled:
+            if video_capture is None:
+                raise ValueError("video_capture must be provided when video is enabled")
             self._video_capture = video_capture
         else:
-            raise ValueError("video_capture must be provided for Sendonly")
+            self._video_capture = video_capture
 
     def connect(self, fake_audio=False, fake_video=False) -> None:
         self._connection.connect()
@@ -139,12 +150,16 @@ class Sendonly:
 
     def _fake_audio_loop(self):
         # 20ms ごとに無音データを送信
+        if self._audio_source is None:
+            return
         while not self._closed.is_set():
             time.sleep(0.02)
             self._audio_source.on_data(numpy.zeros((320, 1), dtype=numpy.int16))
 
     def _fake_video_loop(self):
         # 30fps で黒いフレームを送信
+        if self._video_source is None:
+            return
         while not self._closed.is_set():
             time.sleep(1.0 / 30)
             self._video_source.on_captured(numpy.zeros((480, 640, 3), dtype=numpy.uint8))
@@ -188,35 +203,52 @@ class Sendonly:
     def _sounddevice_input_stream_callback(
         self, indata: ndarray, frames: int, time: Any, status: sounddevice.CallbackFlags
     ) -> None:
-        self._audio_source.on_data(indata)
+        if self._audio_source is not None:
+            self._audio_source.on_data(indata)
 
     def run(self) -> None:
-        # 音声入力ストリームを開始
-        with sounddevice.InputStream(
-            samplerate=self._audio_sample_rate,
-            channels=self._audio_channels,
-            dtype="int16",
-            callback=self._sounddevice_input_stream_callback,
-        ):
+        # 音声入力ストリームを開始（audio が有効な場合のみ）
+        audio_context = (
+            sounddevice.InputStream(
+                samplerate=self._audio_sample_rate,
+                channels=self._audio_channels,
+                dtype="int16",
+                callback=self._sounddevice_input_stream_callback,
+            )
+            if self._audio_enabled
+            else nullcontext()
+        )
+
+        with audio_context:
             self.connect()
             try:
                 while self._connected.is_set():
-                    success, frame = self._video_capture.read()
-                    if not success:
-                        continue
-                    self._video_source.on_captured(frame)
-                    # プレビュー表示
-                    if self._show_preview:
-                        cv2.imshow("Sendonly Preview", frame)
-                        if cv2.waitKey(1) & 0xFF == ord("q"):
+                    # video が有効な場合のみカメラから読み込む
+                    if self._video_enabled and self._video_capture is not None:
+                        success, frame = self._video_capture.read()
+                        if not success:
+                            continue
+                        if self._video_source is not None:
+                            self._video_source.on_captured(frame)
+                        # プレビュー表示
+                        if self._show_preview:
+                            cv2.imshow("Sendonly Preview", frame)
+                            if cv2.waitKey(1) & 0xFF == ord("q"):
+                                break
+                    else:
+                        # video が無効な場合は短いスリープで待機
+                        time.sleep(0.01)
+                        # キーボード入力チェック（プレビューがある場合）
+                        if self._show_preview and cv2.waitKey(1) & 0xFF == ord("q"):
                             break
             except KeyboardInterrupt:
                 pass
             finally:
                 self.disconnect()
-                self._video_capture.release()
+                if self._video_capture is not None:
+                    self._video_capture.release()
                 if self._show_preview:
-                    cv2.destroyWindow("Sendonly Preview")
+                    cv2.destroyAllWindows()
 
 
 def get_video_capture(
@@ -338,6 +370,20 @@ def _parse_args(argv: list[str] | None = None):
         help="Path to the OpenH264 library file for H.264 encoding",
     )
     parser.add_argument(
+        "--no-audio",
+        dest="audio",
+        action="store_false",
+        default=True,
+        help="Disable audio transmission. When specified, microphone will not be used and no audio will be sent",
+    )
+    parser.add_argument(
+        "--no-video",
+        dest="video",
+        action="store_false",
+        default=True,
+        help="Disable video transmission. When specified, camera will not be used and no video will be sent",
+    )
+    parser.add_argument(
         "--show-preview",
         dest="show_preview",
         action="store_true",
@@ -351,22 +397,25 @@ def main(argv: list[str] | None = None) -> None:
 
     signaling_urls = args.signaling_urls
     if not signaling_urls:
-        raise ValueError("シグナリング URL が指定されていません")
+        raise ValueError("Signaling URL is not specified")
 
     channel_id = resolve_channel_id(args.channel_id, args.channel_id_prefix)
 
-    camera_id = args.camera_id
-    if camera_id is None:
-        raise ValueError("カメラ ID を整数で指定してください")
+    # video が有効な場合のみビデオキャプチャを設定
+    video_capture = None
+    if args.video:
+        camera_id = args.camera_id
+        if camera_id is None:
+            raise ValueError("Camera ID must be specified as an integer")
 
-    # OpenCV を利用したビデオキャプチャの設定
-    video_capture = get_video_capture(
-        camera_id=camera_id,
-        video_width=args.video_width,
-        video_height=args.video_height,
-        video_fps=args.video_fps,
-        video_fourcc=args.video_fourcc,
-    )
+        # OpenCV を利用したビデオキャプチャの設定
+        video_capture = get_video_capture(
+            camera_id=camera_id,
+            video_width=args.video_width,
+            video_height=args.video_height,
+            video_fps=args.video_fps,
+            video_fourcc=args.video_fourcc,
+        )
 
     video_codec_preference = get_video_codec_preference(args.openh264_path)
 
@@ -374,6 +423,8 @@ def main(argv: list[str] | None = None) -> None:
         signaling_urls,
         channel_id,
         metadata=args.metadata,
+        audio=args.audio,
+        video=args.video,
         video_codec_type=args.video_codec_type,
         video_bit_rate=args.video_bit_rate,
         openh264_path=args.openh264_path,

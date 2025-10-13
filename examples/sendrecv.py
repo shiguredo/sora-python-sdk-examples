@@ -1,6 +1,9 @@
 import json
 import math
+import platform
+import threading
 import time
+from contextlib import nullcontext
 from threading import Event, Lock
 from typing import Any
 
@@ -26,7 +29,7 @@ from sora_sdk import (
 )
 
 
-class Recvonly:
+class Sendrecv:
     def __init__(
         self,
         signaling_urls: list[str],
@@ -34,37 +37,73 @@ class Recvonly:
         /,
         *,
         metadata: dict[str, Any] | None = None,
+        audio: bool | None = None,
+        video: bool | None = None,
+        video_codec_type: str | None = None,
+        video_bit_rate: int | None = None,
         data_channel_signaling: bool | None = None,
         openh264_path: str | None = None,
         video_codec_preference: SoraVideoCodecPreference | None = None,
+        audio_channels: int = 1,
+        audio_sample_rate: int = 16000,
         output_frequency: int = 16000,
         output_channels: int = 1,
+        video_capture: cv2.VideoCapture | None = None,
+        show_preview: bool = False,
         grid_cols: int = 3,
-        show_preview: bool = True,
     ):
+        # Sora 接続設定
         self._signaling_urls: list[str] = signaling_urls
         self._channel_id: str = channel_id
 
-        # 音声出力設定
+        # 音声設定（入力）
+        self._audio_channels: int = audio_channels
+        self._audio_sample_rate: int = audio_sample_rate
+
+        # 音声設定（出力）
         self._output_frequency: int = output_frequency
         self._output_channels: int = output_channels
 
         # グリッド表示設定
         self._grid_cols: int = grid_cols
 
-        # プレビュー設定
-        self._show_preview: bool = show_preview
-
-        # Sora 接続
+        # Sora SDK インスタンス
         self._sora: Sora = Sora(
-            openh264=openh264_path, video_codec_preference=video_codec_preference
+            video_codec_preference=video_codec_preference,
+            openh264=openh264_path,
         )
+
+        # フェイクストリーム用スレッド
+        self._fake_audio_thread: threading.Thread | None = None
+        self._fake_video_thread: threading.Thread | None = None
+
+        # audio と video の設定を保存
+        self._audio_enabled: bool = audio if audio is not None else True
+        self._video_enabled: bool = video if video is not None else True
+
+        # 音声・映像ソースの生成（送信用、有効な場合のみ）
+        self._audio_source = None
+        self._video_source = None
+        if self._audio_enabled:
+            self._audio_source = self._sora.create_audio_source(
+                self._audio_channels, self._audio_sample_rate
+            )
+        if self._video_enabled:
+            self._video_source = self._sora.create_video_source()
+
+        # Sora への接続を作成
         self._connection: SoraConnection = self._sora.create_connection(
             signaling_urls=signaling_urls,
-            role="recvonly",
+            role="sendrecv",
             channel_id=channel_id,
             metadata=metadata,
+            audio=audio,
+            video=video,
+            video_codec_type=video_codec_type,
+            video_bit_rate=video_bit_rate,
             data_channel_signaling=data_channel_signaling,
+            audio_source=self._audio_source,
+            video_source=self._video_source,
         )
         self._connection_id: str | None = None
 
@@ -74,7 +113,7 @@ class Recvonly:
         self._closed: Event = Event()
         self._default_connection_timeout_s: float = 10.0
 
-        # 音声・映像シンク
+        # 音声・映像シンク（受信用）
         self._audio_sink: SoraAudioSink | None = None
         self._video_sinks: dict[str, SoraVideoSink] = {}
 
@@ -88,15 +127,38 @@ class Recvonly:
         # connection_id の出現順序を記録（グリッド位置を固定するため）
         self._connection_order: list[str] = []
 
+        # コールバック設定
         self._connection.on_set_offer = self._on_set_offer
         self._connection.on_switched = self._on_switched
         self._connection.on_notify = self._on_notify
         self._connection.on_disconnect = self._on_disconnect
         self._connection.on_track = self._on_track
 
-    def connect(self) -> None:
+        # プレビュー設定
+        self._show_preview: bool = show_preview
+
+        # ビデオキャプチャの検証
+        if self._video_enabled:
+            if video_capture is None:
+                raise ValueError("video_capture must be provided when video is enabled")
+            self._video_capture = video_capture
+        else:
+            self._video_capture = video_capture
+
+    def connect(self, fake_audio=False, fake_video=False) -> None:
         self._connection.connect()
 
+        # フェイク音声スレッドの起動
+        if fake_audio:
+            self._fake_audio_thread = threading.Thread(target=self._fake_audio_loop, daemon=True)
+            self._fake_audio_thread.start()
+
+        # フェイク映像スレッドの起動
+        if fake_video:
+            self._fake_video_thread = threading.Thread(target=self._fake_video_loop, daemon=True)
+            self._fake_video_thread.start()
+
+        # 接続完了を待機
         assert self._connected.wait(self._default_connection_timeout_s), (
             "Could not connect to Sora."
         )
@@ -119,6 +181,22 @@ class Recvonly:
     @property
     def closed(self):
         return self._closed.is_set()
+
+    def _fake_audio_loop(self):
+        # 20ms ごとに無音データを送信
+        if self._audio_source is None:
+            return
+        while not self._closed.is_set():
+            time.sleep(0.02)
+            self._audio_source.on_data(np.zeros((320, 1), dtype=np.int16))
+
+    def _fake_video_loop(self):
+        # 30fps で黒いフレームを送信
+        if self._video_source is None:
+            return
+        while not self._closed.is_set():
+            time.sleep(1.0 / 30)
+            self._video_source.on_captured(np.zeros((480, 640, 3), dtype=np.uint8))
 
     def _on_set_offer(self, raw_message: str) -> None:
         message: dict[str, Any] = json.loads(raw_message)
@@ -181,7 +259,14 @@ class Recvonly:
     def _on_disconnect(self, error_code: SoraSignalingErrorCode, message: str) -> None:
         print(f"Disconnected Sora: error_code='{error_code}' message='{message}'")
         self._connected.clear()
-        self._closed.is_set()
+        self._closed.set()
+
+        # フェイクストリームスレッドの終了を待機
+        if self._fake_audio_thread is not None:
+            self._fake_audio_thread.join(timeout=10)
+
+        if self._fake_video_thread is not None:
+            self._fake_video_thread.join(timeout=10)
 
     def _create_video_frame_callback(self, connection_id: str):
         def callback(frame: SoraVideoFrame) -> None:
@@ -290,7 +375,13 @@ class Recvonly:
 
         return grid_image
 
-    def _callback(
+    def _sounddevice_input_stream_callback(
+        self, indata: ndarray, frames: int, time: Any, status: sounddevice.CallbackFlags
+    ) -> None:
+        if self._audio_source is not None:
+            self._audio_source.on_data(indata)
+
+    def _sounddevice_output_stream_callback(
         self, outdata: ndarray, frames: int, time: Any, status: sounddevice.CallbackFlags
     ) -> None:
         if self._audio_sink is not None:
@@ -303,32 +394,60 @@ class Recvonly:
                 print("Unable to obtain audio data")
 
     def run(self) -> None:
-        # 音声出力ストリームを開始
-        with sounddevice.OutputStream(
-            channels=self._output_channels,
-            callback=self._callback,
-            samplerate=self._output_frequency,
-            dtype="int16",
-        ):
+        # 音声入力/出力ストリームを開始（audio が有効な場合のみ）
+        audio_input_context = (
+            sounddevice.InputStream(
+                samplerate=self._audio_sample_rate,
+                channels=self._audio_channels,
+                dtype="int16",
+                callback=self._sounddevice_input_stream_callback,
+            )
+            if self._audio_enabled
+            else nullcontext()
+        )
+        audio_output_context = (
+            sounddevice.OutputStream(
+                channels=self._output_channels,
+                callback=self._sounddevice_output_stream_callback,
+                samplerate=self._output_frequency,
+                dtype="int16",
+            )
+            if self._audio_enabled
+            else nullcontext()
+        )
+
+        with audio_input_context, audio_output_context:
             self.connect()
             try:
                 while self._connected.is_set():
+                    # video が有効な場合のみカメラから読み込む
+                    if self._video_enabled and self._video_capture is not None:
+                        success, frame = self._video_capture.read()
+                        if success:
+                            if self._video_source is not None:
+                                self._video_source.on_captured(frame)
+
+                            # プレビュー表示
+                            if self._show_preview:
+                                cv2.imshow("Sendrecv Preview (Sending)", frame)
+
                     # フレーム辞書と順序のコピーを取得
                     with self._video_frames_lock:
                         frames_snapshot = self._video_frames.copy()
                         connection_order_snapshot = self._connection_order.copy()
 
-                    # グリッド画像を生成して表示
+                    # グリッド画像を生成して表示（受信映像、プレビュー有効時のみ）
                     if frames_snapshot and self._show_preview:
                         grid_image = self._create_grid_image(
                             frames_snapshot, connection_order_snapshot
                         )
                         if grid_image is not None:
-                            cv2.imshow("Sora Recvonly - Grid View", grid_image)
+                            cv2.imshow("Sora Sendrecv - Grid View (Receiving)", grid_image)
 
-                    # 'q' キーで終了（プレビュー表示時のみ）
+                    # 'q' キーで終了（プレビュー有効時のみ）
                     if self._show_preview:
-                        if cv2.waitKey(30) & 0xFF == ord("q"):
+                        wait_time = 30
+                        if cv2.waitKey(wait_time) & 0xFF == ord("q"):
                             break
                     else:
                         # プレビューなしの場合は短いスリープ
@@ -337,13 +456,52 @@ class Recvonly:
                 pass
             finally:
                 self.disconnect()
+                if self._video_capture is not None:
+                    self._video_capture.release()
                 cv2.destroyAllWindows()
+
+
+def get_video_capture(
+    camera_id: int,
+    video_width: int,
+    video_height: int,
+    video_fps: int,
+    video_fourcc: str,
+) -> cv2.VideoCapture:
+    # Windows の場合は CAP_DSHOW を設定しないとカメラの起動が遅くなる
+    if platform.system() == "Windows":
+        video_capture = cv2.VideoCapture(camera_id, cv2.CAP_DSHOW)
+    else:
+        video_capture = cv2.VideoCapture(camera_id)
+
+    if video_width is not None:
+        video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, video_width)
+    if video_height is not None:
+        video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, video_height)
+    if video_fourcc is not None:
+        video_capture.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*video_fourcc))
+    if video_fps is not None:
+        video_capture.set(cv2.CAP_PROP_FPS, video_fps)
+
+    # Ubuntu では FOURCC を設定すると FPS が初期化される
+    # Windows では FPS を設定すると FOURCC が初期化される
+    # 両方の OS に対応するため、設定が反映されていなければ再設定する
+    if video_fourcc is not None:
+        fourcc = cv2.VideoWriter_fourcc(*video_fourcc)
+        target_fourcc = video_capture.get(cv2.CAP_PROP_FOURCC)
+        if fourcc != target_fourcc:
+            video_capture.set(cv2.CAP_PROP_FOURCC, fourcc)
+    if video_fps is not None:
+        if video_fps != int(video_capture.get(cv2.CAP_PROP_FPS)):
+            video_capture.set(cv2.CAP_PROP_FPS, video_fps)
+
+    return video_capture
 
 
 def _parse_args(argv: list[str] | None = None):
     parser = EnvPrefixArgumentParser(
         env_prefix="SORA_",
-        description="Sora recvonly sample application for receiving video and audio streams",
+        description="Sora sendrecv sample application for sending and receiving video and audio streams",
     )
     parser.add_argument(
         "--signaling-url",
@@ -369,18 +527,66 @@ def _parse_args(argv: list[str] | None = None):
         help='JSON metadata to send when connecting to Sora. Must be valid JSON format (e.g., \'{"key": "value"}\')',
     )
     parser.add_argument(
+        "--video-codec-type",
+        dest="video_codec_type",
+        choices=["VP8", "VP9", "AV1", "H264", "H265"],
+        default="VP9",
+        help="Video codec type to use for encoding transmitted video. Default is VP9",
+    )
+    parser.add_argument(
+        "--video-bit-rate",
+        dest="video_bit_rate",
+        type=int,
+        default=500,
+        help="Video bitrate in kbps (kilobits per second) for transmitted video. Default is 500 kbps",
+    )
+    parser.add_argument(
+        "--video-width",
+        dest="video_width",
+        type=int,
+        default=640,
+        help="Video frame width in pixels for camera capture. Default is 640 pixels",
+    )
+    parser.add_argument(
+        "--video-height",
+        dest="video_height",
+        type=int,
+        default=360,
+        help="Video frame height in pixels for camera capture. Default is 360 pixels",
+    )
+    parser.add_argument(
+        "--video-fps",
+        dest="video_fps",
+        type=int,
+        default=30,
+        help="Video frame rate (frames per second) for camera capture. Default is 30 fps",
+    )
+    parser.add_argument(
+        "--video-fourcc",
+        dest="video_fourcc",
+        default="MJPG",
+        help="Video FOURCC code for camera capture format (e.g., MJPG, YUYV). Default is MJPG",
+    )
+    parser.add_argument(
+        "--camera-id",
+        dest="camera_id",
+        type=int,
+        default=0,
+        help="Camera device ID to use for video capture. Default is 0 (first camera)",
+    )
+    parser.add_argument(
         "--output-frequency",
         dest="output_frequency",
         type=int,
         default=16000,
-        help="Audio output sampling frequency in Hz. Default is 16000 Hz. Common values are 8000, 16000, 24000, or 48000",
+        help="Audio output sampling frequency in Hz for received audio. Default is 16000 Hz. Common values are 8000, 16000, 24000, or 48000",
     )
     parser.add_argument(
         "--output-channels",
         dest="output_channels",
         type=int,
         default=1,
-        help="Number of audio output channels. Default is 1 (mono). Set to 2 for stereo output",
+        help="Number of audio output channels for received audio. Default is 1 (mono). Set to 2 for stereo output",
     )
     parser.add_argument(
         "--data-channel-signaling",
@@ -392,21 +598,35 @@ def _parse_args(argv: list[str] | None = None):
     parser.add_argument(
         "--openh264-path",
         dest="openh264_path",
-        help="Path to the OpenH264 library file for H.264 video decoding. Required when receiving H.264 encoded video streams",
+        help="Path to the OpenH264 library file for H.264 video encoding/decoding. Required when using H.264 codec",
     )
     parser.add_argument(
-        "--grid-cols",
-        dest="grid_cols",
-        type=int,
-        default=3,
-        help="Number of columns in the grid layout for displaying multiple video streams. Default is 3. Videos will wrap to the next row when this limit is reached",
+        "--no-audio",
+        dest="audio",
+        action="store_false",
+        default=True,
+        help="Disable audio transmission and reception. When specified, microphone and speaker will not be used",
+    )
+    parser.add_argument(
+        "--no-video",
+        dest="video",
+        action="store_false",
+        default=True,
+        help="Disable video transmission and reception. When specified, camera will not be used and no video will be sent or received",
     )
     parser.add_argument(
         "--no-show-preview",
         dest="show_preview",
         action="store_false",
         default=True,
-        help="Disable video display. When specified, received video streams will not be shown in a window",
+        help="Disable video display. When specified, preview windows for both transmitted and received video streams will not be shown",
+    )
+    parser.add_argument(
+        "--grid-cols",
+        dest="grid_cols",
+        type=int,
+        default=3,
+        help="Number of columns in the grid layout for displaying received video streams. Default is 3. Videos will wrap to the next row when this limit is reached",
     )
     return parser.parse_args(argv)
 
@@ -426,21 +646,41 @@ def main(argv: list[str] | None = None) -> None:
     if args.output_channels is None:
         raise ValueError("Output channels must be specified as an integer")
 
+    # video が有効な場合のみビデオキャプチャを設定
+    video_capture = None
+    if args.video:
+        camera_id = args.camera_id
+        if camera_id is None:
+            raise ValueError("Camera ID must be specified as an integer")
+
+        # OpenCV を利用したビデオキャプチャの設定
+        video_capture = get_video_capture(
+            camera_id=camera_id,
+            video_width=args.video_width,
+            video_height=args.video_height,
+            video_fps=args.video_fps,
+            video_fourcc=args.video_fourcc,
+        )
+
     video_codec_preference = get_video_codec_preference(args.openh264_path)
 
-    recvonly_instance = Recvonly(
+    sendrecv_instance = Sendrecv(
         signaling_urls,
         channel_id,
         metadata=args.metadata,
-        data_channel_signaling=args.data_channel_signaling,
+        audio=args.audio,
+        video=args.video,
+        video_codec_type=args.video_codec_type,
+        video_bit_rate=args.video_bit_rate,
         openh264_path=args.openh264_path,
         video_codec_preference=video_codec_preference,
         output_frequency=args.output_frequency,
         output_channels=args.output_channels,
-        grid_cols=args.grid_cols,
+        video_capture=video_capture,
         show_preview=args.show_preview,
+        grid_cols=args.grid_cols,
     )
-    recvonly_instance.run()
+    sendrecv_instance.run()
 
 
 if __name__ == "__main__":
