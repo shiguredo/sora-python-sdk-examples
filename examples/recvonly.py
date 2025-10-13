@@ -3,7 +3,7 @@ import json
 import math
 import sys
 import time
-from threading import Event, Lock
+from threading import Event, RLock
 from typing import Any
 
 import cv2  # type: ignore
@@ -87,7 +87,7 @@ class Recvonly:
 
         # connection_id をキーとしてフレームを管理
         self._video_frames: dict[str, np.ndarray] = {}
-        self._video_frames_lock: Lock = Lock()
+        self._video_frames_lock: RLock = RLock()
 
         # track_id から connection_id へのマッピング
         self._track_to_connection: dict[str, str] = {}
