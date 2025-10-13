@@ -111,6 +111,15 @@ class Recvonly:
     def disconnect(self) -> None:
         self._connection.disconnect()
 
+    def __enter__(self):
+        self.connect()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.disconnect()
+        cv2.destroyAllWindows()
+        return False
+
     def get_stats(self):
         raw_stats = self._connection.get_stats()
         return json.loads(raw_stats)

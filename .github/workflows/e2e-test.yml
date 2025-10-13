@@ -19,8 +19,8 @@ jobs:
   e2e_test_ubuntu:
     strategy:
       matrix:
-        # mediapipe が Python 3.13 に対応していない
-        # python_version: ["3.11", "3.12", "3.13"]
+        # mediapipe が Python 3.13 以降に対応していない
+        # python_version: ["3.11", "3.12", "3.13", "3.14"]
         python_version: ["3.11", "3.12"]
         os: ["ubuntu-22.04", "ubuntu-24.04"]
     runs-on: ${{ matrix.os}}
@@ -31,16 +31,17 @@ jobs:
       - run: |
           sudo apt-get update
           sudo apt-get -y install libva2 libdrm2 libva-dev libdrm-dev libx11-dev portaudio19-dev
-      - name: Download openh264
-        run: |
-          curl -LO http://ciscobinary.openh264.org/libopenh264-${{ env.OPENH264_VERSION }}-linux64.8.so.bz2
-          bzip2 -d libopenh264-${{ env.OPENH264_VERSION }}-linux64.8.so.bz2
-          mv libopenh264-${{ env.OPENH264_VERSION }}-linux64.8.so libopenh264.so
-          echo "OPENH264_PATH=$(pwd)/libopenh264.so" >> $GITHUB_ENV
-      - uses: astral-sh/setup-uv@v5
-      - run: uv python pin ${{ matrix.python_version }}
+      - uses: shiguredo/github-actions/.github/actions/download-openh264@main
+        id: openh264
+        with:
+          platform_name: ${{ matrix.os }}_x86_64
+          openh264_version: ${{ env.OPENH264_VERSION }}
+      - run: echo "OPENH264_PATH=${{ steps.openh264.outputs.openh264_path }}" >> $GITHUB_ENV
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: ${{ matrix.python_version }}
       - run: uv sync
-      - run: uv run pytest -s
+      - run: uv run pytest -v
 
   e2e_test_ubuntu_arm:
     strategy:
@@ -56,16 +57,18 @@ jobs:
       - run: |
           sudo apt-get update
           sudo apt-get -y install libva2 libdrm2 libva-dev libdrm-dev libx11-dev portaudio19-dev
-      - name: Download openh264
-        run: |
-          curl -LO http://ciscobinary.openh264.org/libopenh264-${{ env.OPENH264_VERSION }}-linux-arm64.8.so.bz2
-          bzip2 -d libopenh264-${{ env.OPENH264_VERSION }}-linux-arm64.8.so.bz2
-          mv libopenh264-${{ env.OPENH264_VERSION }}-linux-arm64.8.so libopenh264.so
-          echo "OPENH264_PATH=$(pwd)/libopenh264.so" >> $GITHUB_ENV
-      - uses: astral-sh/setup-uv@v5
-      - run: uv python pin ${{ matrix.python_version }}
+      - uses: shiguredo/github-actions/.github/actions/download-openh264@main
+        id: openh264
+        with:
+          platform_name: ubuntu-24.04_arm64
+          openh264_version: ${{ env.OPENH264_VERSION }}
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: ${{ matrix.python_version }}
       - run: uv sync
       - run: uv run pytest -s
+        env:
+          OPENH264_PATH: ${{ steps.openh264.outputs.openh264_path }}
 
   e2e_test_macos:
     strategy:
@@ -79,16 +82,18 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
-      - name: Download openh264
-        run: |
-          curl -LO http://ciscobinary.openh264.org/libopenh264-${{ env.OPENH264_VERSION }}-mac-arm64.dylib.bz2
-          bzip2 -d libopenh264-${{ env.OPENH264_VERSION }}-mac-arm64.dylib.bz2
-          mv libopenh264-${{ env.OPENH264_VERSION }}-mac-arm64.dylib libopenh264.dylib
-          echo "OPENH264_PATH=$(pwd)/libopenh264.dylib" >> $GITHUB_ENV
-      - uses: astral-sh/setup-uv@v5
-      - run: uv python pin ${{ matrix.python_version }}
+      - uses: shiguredo/github-actions/.github/actions/download-openh264@main
+        id: openh264
+        with:
+          platform_name: macos_arm64
+          openh264_version: ${{ env.OPENH264_VERSION }}
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: ${{ matrix.python_version }}
       - run: uv sync
       - run: uv run pytest -s
+        env:
+          OPENH264_PATH: ${{ steps.openh264.outputs.openh264_path }}
 
   e2e_test_windows:
     strategy:
@@ -103,35 +108,22 @@ jobs:
       PYTHONUTF8: 1
     steps:
       - uses: actions/checkout@v5
-      - name: Download openh264
-        shell: pwsh
-        run: |
-          $url = "http://ciscobinary.openh264.org/openh264-${{ env.OPENH264_VERSION }}-win64.dll.bz2"
-          Invoke-WebRequest -Uri $url -OutFile "openh264-${{ env.OPENH264_VERSION }}-win64.dll.bz2"
-          7z e openh264-${{ env.OPENH264_VERSION }}-win64.dll.bz2
-          Rename-Item -Path "openh264-${{ env.OPENH264_VERSION }}-win64.dll" -NewName "libopenh264.dll"
-          echo "OPENH264_PATH=$PWD\libopenh264.dll" >> $env:GITHUB_ENV
-      - uses: astral-sh/setup-uv@v5
-      - run: uv python pin ${{ matrix.python_version }}
+      - uses: shiguredo/github-actions/.github/actions/download-openh264@main
+        id: openh264
+        with:
+          platform_name: windows_x86_64
+          openh264_version: ${{ env.OPENH264_VERSION }}
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: ${{ matrix.python_version }}
       - run: uv sync
       - run: uv run pytest -s
-
-  # slack_notify_succeeded:
-  #   needs: [e2e_test_ubuntu, e2e_test_ubuntu_arm, e2e_test_macos, e2e_test_windows]
-  #   runs-on: ubuntu-24.04
-  #   if: success()
-  #   steps:
-  #     - name: Slack Notification
-  #       uses: rtCamp/action-slack-notify@v2
-  #       env:
-  #         SLACK_CHANNEL: sora-python-sdk
-  #         SLACK_COLOR: good
-  #         SLACK_TITLE: SUCCEEDED
-  #         SLACK_ICON_EMOJI: ":star-struck:"
-  #         SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        env:
+          OPENH264_PATH: ${{ steps.openh264.outputs.openh264_path }}
 
   slack_notify_failed:
-    needs: [e2e_test_ubuntu, e2e_test_ubuntu_arm, e2e_test_macos, e2e_test_windows]
+    needs:
+      [e2e_test_ubuntu, e2e_test_ubuntu_arm, e2e_test_macos, e2e_test_windows]
     runs-on: ubuntu-24.04
     if: failure()
     steps:
@@ -142,4 +134,4 @@ jobs:
           SLACK_COLOR: danger
           SLACK_TITLE: "FAILED"
           SLACK_ICON_EMOJI: ":japanese_ogre:"
-          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}  
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}

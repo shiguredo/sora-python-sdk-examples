@@ -11,14 +11,21 @@ def test_recvonly(setup) -> None:
 
     channel_id = f"{channel_id_prefix}{uuid.uuid4()}"
 
-    recvonly = Recvonly(
-        signaling_urls=signaling_urls,
-        channel_id=channel_id,
+    with Recvonly(
+        signaling_urls,
+        channel_id,
         metadata=metadata,
-    )
+        show_preview=False,
+    ) as recvonly:
+        time.sleep(5)
 
-    recvonly.connect()
+        stats = recvonly.get_stats()
 
-    time.sleep(3)
-
-    recvonly.disconnect()
+        # transport の統計情報を取得して接続確認
+        transport_stat = next(
+            (stat for stat in stats if stat.get("type") == "transport"),
+            None,
+        )
+        assert transport_stat is not None
+        assert transport_stat.get("dtlsState") == "connected"
+        assert transport_stat.get("iceState") == "connected"

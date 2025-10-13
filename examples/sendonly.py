@@ -43,6 +43,8 @@ class Sendonly:
         audio_sample_rate: int = 16000,
         video_capture: cv2.VideoCapture | None = None,
         show_preview: bool = False,
+        fake_audio: bool = False,
+        fake_video: bool = False,
     ):
         # Sora 接続設定
         self._signaling_urls: list[str] = signaling_urls
@@ -63,17 +65,17 @@ class Sendonly:
         self._fake_video_thread: threading.Thread | None = None
 
         # audio と video の設定を保存
-        self._audio_enabled: bool = audio if audio is not None else True
-        self._video_enabled: bool = video if video is not None else True
+        self._audio: bool = audio if audio is not None else True
+        self._video: bool = video if video is not None else True
 
         # 音声・映像ソースの生成（有効な場合のみ）
         self._audio_source = None
         self._video_source = None
-        if self._audio_enabled:
+        if self._audio:
             self._audio_source = self._sora.create_audio_source(
                 self._audio_channels, self._audio_sample_rate
             )
-        if self._video_enabled:
+        if self._video:
             self._video_source = self._sora.create_video_source()
 
         # Sora への接続を作成
@@ -107,24 +109,27 @@ class Sendonly:
         # プレビュー設定
         self._show_preview: bool = show_preview
 
-        # ビデオキャプチャの検証
-        if self._video_enabled:
-            if video_capture is None:
-                raise ValueError("video_capture must be provided when video is enabled")
-            self._video_capture = video_capture
-        else:
-            self._video_capture = video_capture
+        # フェイク音声・映像設定
+        self._fake_audio: bool = fake_audio
+        self._fake_video: bool = fake_video
 
-    def connect(self, fake_audio=False, fake_video=False) -> None:
+        # ビデオキャプチャの検証
+        if self._video and not self._fake_video and video_capture is None:
+            raise ValueError(
+                "video_capture must be provided when video is enabled and fake_video is False"
+            )
+        self._video_capture = video_capture
+
+    def connect(self) -> None:
         self._connection.connect()
 
         # フェイク音声スレッドの起動
-        if fake_audio:
+        if self._fake_audio:
             self._fake_audio_thread = threading.Thread(target=self._fake_audio_loop, daemon=True)
             self._fake_audio_thread.start()
 
         # フェイク映像スレッドの起動
-        if fake_video:
+        if self._fake_video:
             self._fake_video_thread = threading.Thread(target=self._fake_video_loop, daemon=True)
             self._fake_video_thread.start()
 
@@ -135,6 +140,18 @@ class Sendonly:
 
     def disconnect(self) -> None:
         self._connection.disconnect()
+
+    def __enter__(self):
+        self.connect()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.disconnect()
+        if self._video_capture is not None:
+            self._video_capture.release()
+        if self._show_preview:
+            cv2.destroyAllWindows()
+        return False
 
     def get_stats(self):
         raw_stats = self._connection.get_stats()
@@ -207,7 +224,7 @@ class Sendonly:
             self._audio_source.on_data(indata)
 
     def run(self) -> None:
-        # 音声入力ストリームを開始（audio が有効な場合のみ）
+        # 音声入力ストリームを開始（audio が有効で fake_audio でない場合のみ）
         audio_context = (
             sounddevice.InputStream(
                 samplerate=self._audio_sample_rate,
@@ -215,7 +232,7 @@ class Sendonly:
                 dtype="int16",
                 callback=self._sounddevice_input_stream_callback,
             )
-            if self._audio_enabled
+            if self._audio and not self._fake_audio
             else nullcontext()
         )
 
@@ -223,8 +240,8 @@ class Sendonly:
             self.connect()
             try:
                 while self._connected.is_set():
-                    # video が有効な場合のみカメラから読み込む
-                    if self._video_enabled and self._video_capture is not None:
+                    # video が有効で fake_video でない場合のみカメラから読み込む
+                    if self._video and not self._fake_video and self._video_capture is not None:
                         success, frame = self._video_capture.read()
                         if not success:
                             continue
@@ -236,7 +253,7 @@ class Sendonly:
                             if cv2.waitKey(1) & 0xFF == ord("q"):
                                 break
                     else:
-                        # video が無効な場合は短いスリープで待機
+                        # video が無効または fake_video の場合は短いスリープで待機
                         time.sleep(0.01)
                         # キーボード入力チェック（プレビューがある場合）
                         if self._show_preview and cv2.waitKey(1) & 0xFF == ord("q"):
