@@ -117,7 +117,8 @@ class Recvonly:
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.disconnect()
-        cv2.destroyAllWindows()
+        if self._show_preview:
+            cv2.destroyAllWindows()
         return False
 
     def get_stats(self):
@@ -412,7 +413,8 @@ class Recvonly:
                 pass
             finally:
                 self.disconnect()
-                cv2.destroyAllWindows()
+                if self._show_preview:
+                    cv2.destroyAllWindows()
 
 
 def _parse_args(argv: list[str] | None = None):

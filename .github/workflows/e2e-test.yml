@@ -34,7 +34,6 @@ jobs:
       - uses: shiguredo/github-actions/.github/actions/download-openh264@main
         id: openh264
         with:
-          platform_name: ${{ matrix.os }}_x86_64
           openh264_version: ${{ env.OPENH264_VERSION }}
       - run: echo "OPENH264_PATH=${{ steps.openh264.outputs.openh264_path }}" >> $GITHUB_ENV
       - uses: astral-sh/setup-uv@v7
@@ -49,7 +48,7 @@ jobs:
         # arm64 は Ubuntu-24.04 と Python 3.12 のみ対応
         python_version: ["3.12"]
         os: ["ubuntu-24.04-arm"]
-    runs-on: ${{ matrix.os}}
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v5
@@ -60,7 +59,6 @@ jobs:
       - uses: shiguredo/github-actions/.github/actions/download-openh264@main
         id: openh264
         with:
-          platform_name: ubuntu-24.04_armv8
           openh264_version: ${{ env.OPENH264_VERSION }}
       - uses: astral-sh/setup-uv@v7
         with:
@@ -85,7 +83,6 @@ jobs:
       - uses: shiguredo/github-actions/.github/actions/download-openh264@main
         id: openh264
         with:
-          platform_name: macos_arm64
           openh264_version: ${{ env.OPENH264_VERSION }}
       - uses: astral-sh/setup-uv@v7
         with:
@@ -101,7 +98,8 @@ jobs:
         # mediapipe が Python 3.13 に対応していない
         # python_version: ["3.12", "3.13", "3.14"]
         python_version: ["3.12"]
-    runs-on: windows-2025
+        os: ["windows-2025"]
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     env:
       # Python を強制的に UTF-8 で利用するおまじない
@@ -111,7 +109,6 @@ jobs:
       - uses: shiguredo/github-actions/.github/actions/download-openh264@main
         id: openh264
         with:
-          platform_name: windows_x86_64
           openh264_version: ${{ env.OPENH264_VERSION }}
       - uses: astral-sh/setup-uv@v7
         with:
