@@ -308,12 +308,44 @@ class Sendrecv:
             self._video_sinks[track_id] = video_sink
             print(f"Video track added: track_id={track_id}, connection_id={connection_id}")
 
+    def _resize_with_aspect_ratio(
+        self, frame: np.ndarray, target_width: int, target_height: int
+    ) -> np.ndarray:
+        # 元のフレームサイズ
+        h, w = frame.shape[:2]
+
+        # アスペクト比を保持してリサイズ
+        aspect = w / h
+        target_aspect = target_width / target_height
+
+        if aspect > target_aspect:
+            # 幅に合わせる
+            new_width = target_width
+            new_height = int(target_width / aspect)
+        else:
+            # 高さに合わせる
+            new_height = target_height
+            new_width = int(target_height * aspect)
+
+        # リサイズ
+        resized = cv2.resize(frame, (new_width, new_height))
+
+        # 黒い背景を作成
+        result = np.zeros((target_height, target_width, 3), dtype=np.uint8)
+
+        # 中央に配置
+        y_offset = (target_height - new_height) // 2
+        x_offset = (target_width - new_width) // 2
+        result[y_offset : y_offset + new_height, x_offset : x_offset + new_width] = resized
+
+        return result
+
     def _create_grid_image(
         self,
         frames_dict: dict[str, np.ndarray],
         connection_order: list[str],
-        cell_width: int = 320,
-        cell_height: int = 240,
+        cell_width: int = 640,
+        cell_height: int = 480,
     ) -> np.ndarray | None:
         if not frames_dict:
             return None
@@ -349,8 +381,8 @@ class Sendrecv:
             row = idx // cols
             col = idx % cols
 
-            # フレームをリサイズ
-            resized_frame = cv2.resize(frame, (cell_width, cell_height))
+            # アスペクト比を保持してリサイズ（黒枠で埋める）
+            resized_frame = self._resize_with_aspect_ratio(frame, cell_width, cell_height)
 
             # 配置位置を計算
             y_start = row * cell_height + (row + 1) * padding
@@ -365,11 +397,11 @@ class Sendrecv:
             cv2.putText(
                 grid_image,
                 connection_id,
-                (x_start + 5, y_start + 20),
+                (x_start + 10, y_start + 30),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                0.4,
+                0.6,
                 (255, 255, 255),
-                1,
+                2,
                 cv2.LINE_AA,
             )
 

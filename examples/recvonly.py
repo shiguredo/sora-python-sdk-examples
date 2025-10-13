@@ -1,5 +1,7 @@
+import base64
 import json
 import math
+import sys
 import time
 from threading import Event, Lock
 from typing import Any
@@ -41,6 +43,7 @@ class Recvonly:
         output_channels: int = 1,
         grid_cols: int = 3,
         show_preview: bool = True,
+        iterm2: bool = False,
     ):
         self._signaling_urls: list[str] = signaling_urls
         self._channel_id: str = channel_id
@@ -54,6 +57,10 @@ class Recvonly:
 
         # プレビュー設定
         self._show_preview: bool = show_preview
+
+        # iTerm2 画像プロトコル設定
+        self._iterm2: bool = iterm2
+        self._iterm2_first_display: bool = True
 
         # Sora 接続
         self._sora: Sora = Sora(
@@ -223,12 +230,44 @@ class Recvonly:
             self._video_sinks[track_id] = video_sink
             print(f"Video track added: track_id={track_id}, connection_id={connection_id}")
 
+    def _resize_with_aspect_ratio(
+        self, frame: np.ndarray, target_width: int, target_height: int
+    ) -> np.ndarray:
+        # 元のフレームサイズ
+        h, w = frame.shape[:2]
+
+        # アスペクト比を保持してリサイズ
+        aspect = w / h
+        target_aspect = target_width / target_height
+
+        if aspect > target_aspect:
+            # 幅に合わせる
+            new_width = target_width
+            new_height = int(target_width / aspect)
+        else:
+            # 高さに合わせる
+            new_height = target_height
+            new_width = int(target_height * aspect)
+
+        # リサイズ
+        resized = cv2.resize(frame, (new_width, new_height))
+
+        # 黒い背景を作成
+        result = np.zeros((target_height, target_width, 3), dtype=np.uint8)
+
+        # 中央に配置
+        y_offset = (target_height - new_height) // 2
+        x_offset = (target_width - new_width) // 2
+        result[y_offset : y_offset + new_height, x_offset : x_offset + new_width] = resized
+
+        return result
+
     def _create_grid_image(
         self,
         frames_dict: dict[str, np.ndarray],
         connection_order: list[str],
-        cell_width: int = 320,
-        cell_height: int = 240,
+        cell_width: int = 640,
+        cell_height: int = 480,
     ) -> np.ndarray | None:
         if not frames_dict:
             return None
@@ -264,8 +303,8 @@ class Recvonly:
             row = idx // cols
             col = idx % cols
 
-            # フレームをリサイズ
-            resized_frame = cv2.resize(frame, (cell_width, cell_height))
+            # アスペクト比を保持してリサイズ（黒枠で埋める）
+            resized_frame = self._resize_with_aspect_ratio(frame, cell_width, cell_height)
 
             # 配置位置を計算
             y_start = row * cell_height + (row + 1) * padding
@@ -280,15 +319,37 @@ class Recvonly:
             cv2.putText(
                 grid_image,
                 connection_id,
-                (x_start + 5, y_start + 20),
+                (x_start + 10, y_start + 30),
                 cv2.FONT_HERSHEY_SIMPLEX,
-                0.4,
+                0.6,
                 (255, 255, 255),
-                1,
+                2,
                 cv2.LINE_AA,
             )
 
         return grid_image
+
+    def _display_image_iterm2(self, image: np.ndarray) -> None:
+        # 最初の表示時のみ画面クリア
+        if self._iterm2_first_display:
+            sys.stdout.write("\033[2J\033[H")
+            self._iterm2_first_display = False
+        else:
+            # カーソルをホームポジション（左上）に移動
+            sys.stdout.write("\033[H")
+
+        # 画像を PNG にエンコード
+        success, buffer = cv2.imencode(".png", image)
+        if not success:
+            return
+
+        # base64 エンコード
+        encoded = base64.b64encode(buffer).decode("ascii")
+
+        # iTerm2 画像プロトコルで出力
+        # ESC ] 1337 ; File = [arguments] : base64data ^G
+        sys.stdout.write(f"\033]1337;File=inline=1;width=auto;height=auto:{encoded}\a")
+        sys.stdout.flush()
 
     def _callback(
         self, outdata: ndarray, frames: int, time: Any, status: sounddevice.CallbackFlags
@@ -324,15 +385,20 @@ class Recvonly:
                             frames_snapshot, connection_order_snapshot
                         )
                         if grid_image is not None:
-                            cv2.imshow("Sora Recvonly - Grid View", grid_image)
+                            if self._iterm2:
+                                # iTerm2 プロトコルで表示
+                                self._display_image_iterm2(grid_image)
+                            else:
+                                # OpenCV ウィンドウで表示
+                                cv2.imshow("Sora Recvonly - Grid View", grid_image)
 
-                    # 'q' キーで終了（プレビュー表示時のみ）
-                    if self._show_preview:
+                    # 'q' キーで終了（プレビュー表示時のみ、iTerm2 以外）
+                    if self._show_preview and not self._iterm2:
                         if cv2.waitKey(30) & 0xFF == ord("q"):
                             break
                     else:
-                        # プレビューなしの場合は短いスリープ
-                        time.sleep(0.01)
+                        # プレビューなしの場合、または iTerm2 の場合は短いスリープ
+                        time.sleep(0.01 if not self._show_preview else 0.1)
             except KeyboardInterrupt:
                 pass
             finally:
@@ -408,6 +474,11 @@ def _parse_args(argv: list[str] | None = None):
         default=True,
         help="Disable video display. When specified, received video streams will not be shown in a window",
     )
+    parser.add_argument(
+        "--iterm2",
+        action="store_true",
+        help="Use iTerm2 inline image protocol to display video in the terminal instead of OpenCV window. Only works in iTerm2",
+    )
     return parser.parse_args(argv)
 
 
@@ -439,6 +510,7 @@ def main(argv: list[str] | None = None) -> None:
         output_channels=args.output_channels,
         grid_cols=args.grid_cols,
         show_preview=args.show_preview,
+        iterm2=args.iterm2,
     )
     recvonly_instance.run()
 
