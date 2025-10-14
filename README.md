@@ -31,6 +31,24 @@ uv sync
 uv run python examples/sendonly.py --signaling-url wss://sora.example.com/signaling --channel-id sendonly-example
 ```
 
+### 物体検出サンプルの実行
+
+物体検出サンプルを実行するには Mediapipe モデルが必要です。同じディレクトリで次の順番でコマンドを実行してください。
+
+まずモデルをダウンロードします。
+
+```bash
+curl -LO https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite
+```
+
+次にサンプルを実行します。
+
+```bash
+uv run python examples/object_detection_sender.py --signaling-url wss://sora.example.com/signaling --channel-id object-detection-example --model-path efficientdet_lite0.tflite --secret-key your-secret-key
+```
+
+`SORA_SECRET_KEY` 環境変数を設定すると `--secret-key` を指定せずに実行できます。
+
 ### 環境変数による指定
 
 `.env.template` をコピーして `.env` に必要な変数を設定してください。

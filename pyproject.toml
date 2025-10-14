@@ -13,15 +13,12 @@ dependencies = [
     "mediapipe>=0.10.14",
     "numpy>=2.2",
     "pillow>=11.3",
+    "pyjwt>=2.10",
 ]
 
 [dependency-groups]
 dev = ["pytest", "pytest-timeout", "dotenv"]
 lint = ["ruff", "ty"]
-
-[build-system]
-requires = ["uv_build"]
-build-backend = "uv_build"
 
 [tool.uv]
 package = false
