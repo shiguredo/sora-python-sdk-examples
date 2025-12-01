@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [{ name = "Shiguredo Inc." }]
 requires-python = ">=3.12"
 dependencies = [
-    "sora-sdk==2025.5.0.dev7",
+    "sora-sdk==2025.5.0",
     "opencv-python>=4.12",
     "opencv-python-headless>=4.12",
     "sounddevice>=0.5",
