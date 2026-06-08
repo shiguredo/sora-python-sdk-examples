@@ -42,31 +42,7 @@ jobs:
       - run: uv sync
       - run: uv run pytest -v
 
-  e2e_test_ubuntu_arm:
-    strategy:
-      matrix:
-        # arm64 は Ubuntu-24.04 と Python 3.12 のみ対応
-        python_version: ["3.12"]
-        os: ["ubuntu-24.04-arm"]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      # libx11-dev は Ubuntu 24.04 の時に必要になる模様
-      - run: |
-          sudo apt-get update
-          sudo apt-get -y install libva2 libdrm2 libva-dev libdrm-dev libx11-dev portaudio19-dev
-      - uses: shiguredo/github-actions/.github/actions/download-openh264@main
-        id: openh264
-        with:
-          openh264_version: ${{ env.OPENH264_VERSION }}
-      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
-        with:
-          python-version: ${{ matrix.python_version }}
-      - run: uv sync
-      - run: uv run pytest -s
-        env:
-          OPENH264_PATH: ${{ steps.openh264.outputs.openh264_path }}
+  # mediapipe が Linux arm64 に wheel を提供していないため ubuntu-24.04-arm では E2E テストを実行しない
 
   e2e_test_macos:
     strategy:
@@ -74,8 +50,8 @@ jobs:
         # mediapipe が Python 3.13 に対応していない
         # python_version: ["3.11", "3.12", "3.13", "3.14"]
         python_version: ["3.12"]
-        # macos-13 は test_macos.py が上手くテストが動かないのでスキップ
-        os: ["macos-14", "macos-15"]
+        # macos-13 / macos-14 は raw-player の wheel が macosx_15_0_arm64 のみのためスキップ
+        os: ["macos-15", "macos-26"]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 15
     steps:
@@ -119,8 +95,7 @@ jobs:
           OPENH264_PATH: ${{ steps.openh264.outputs.openh264_path }}
 
   slack_notify:
-    needs:
-      [e2e_test_ubuntu, e2e_test_ubuntu_arm, e2e_test_macos, e2e_test_windows]
+    needs: [e2e_test_ubuntu, e2e_test_macos, e2e_test_windows]
     runs-on: ubuntu-slim
     if: ${{ !cancelled() }}
     timeout-minutes: 5

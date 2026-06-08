@@ -11,6 +11,11 @@
 
 ## main
 
+- [UPDATE] GitHub Actions の ubuntu-24.04-arm による E2E テストを mediapipe 非対応のため削除
+  - @voluntas
+- [UPDATE] GitHub Actions の macOS E2E テストを macos-15 / macos-26 のみに変更
+  - raw-player が macosx_15_0_arm64 向け wheel のみ提供するため macos-14 を除外
+  - @voluntas
 - [UPDATE] recvonly.py を複数受信表示に対応
   - `--grid-cols` 引数で横に並べる数を指定可能
     - デフォルトは 3
