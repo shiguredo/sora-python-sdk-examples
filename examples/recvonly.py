@@ -6,9 +6,10 @@ import time
 from threading import Event, RLock
 from typing import Any
 
-import cv2  # type: ignore
+import cv2
 import numpy as np
-import sounddevice  # type: ignore
+import sounddevice
+from webcodecs import VideoFrame, VideoPixelFormat
 from helpers import (
     EnvPrefixArgumentParser,
     get_video_codec_preference,
@@ -166,7 +167,10 @@ class Recvonly:
                 else:
                     # 他の接続の場合、順序を記録
                     with self._video_frames_lock:
-                        if connection_id not in self._connection_order:
+                        if (
+                            isinstance(connection_id, str)
+                            and connection_id not in self._connection_order
+                        ):
                             self._connection_order.append(connection_id)
                             print(f"New connection detected: connection_id={connection_id}")
 
@@ -239,6 +243,48 @@ class Recvonly:
             video_sink.on_frame = self._create_video_frame_callback(connection_id)
             self._video_sinks[track_id] = video_sink
             print(f"Video track added: track_id={track_id}, connection_id={connection_id}")
+
+    def _bgr_to_i420_planes(
+        self, bgr: np.ndarray, timestamp_us: int = 0
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        height, width = bgr.shape[:2]
+
+        # BGR -> BGRA に変換（webcodecs は BGRA を期待）
+        bgra = cv2.cvtColor(bgr, cv2.COLOR_BGR2BGRA)
+
+        # BGRA で VideoFrame を作成
+        bgra_frame = VideoFrame(
+            np.asarray(bgra.flatten(), dtype=np.uint8),
+            {
+                "format": VideoPixelFormat.BGRA,
+                "coded_width": width,
+                "coded_height": height,
+                "timestamp": timestamp_us,
+            },
+        )
+
+        # I420 用のバッファを確保
+        i420_size = bgra_frame.allocation_size({"format": VideoPixelFormat.I420})
+        i420_data = np.zeros(i420_size, dtype=np.uint8)
+
+        # I420 フォーマットでコピー
+        bgra_frame.copy_to(i420_data, {"format": VideoPixelFormat.I420})
+        bgra_frame.close()
+
+        # I420 VideoFrame を作成して planes を取得
+        i420_frame = VideoFrame(
+            i420_data,
+            {
+                "format": VideoPixelFormat.I420,
+                "coded_width": width,
+                "coded_height": height,
+                "timestamp": timestamp_us,
+            },
+        )
+        y_plane, u_plane, v_plane = i420_frame.planes()
+        i420_frame.close()
+
+        return y_plane, u_plane, v_plane
 
     def _resize_with_aspect_ratio(
         self, frame: np.ndarray, target_width: int, target_height: int

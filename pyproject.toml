@@ -3,36 +3,48 @@ name = "sora-python-sdk-examples"
 version = "0.0.0"
 description = "Sora Python SDK examples collection"
 readme = "README.md"
-authors = [{ name = "Shiguredo Inc." }]
 requires-python = ">=3.12"
+authors = [{ name = "Shiguredo Inc." }]
 dependencies = [
-    "sora-sdk==2025.5.0",
-    "opencv-python>=4.12",
-    "opencv-python-headless>=4.12",
-    "sounddevice>=0.5",
-    "mediapipe>=0.10.14",
-    "numpy>=2.2",
-    "pillow>=11.3",
+  "mediapipe>=0.10.35",
+  "numpy>=2.4",
+  "opencv-python>=4.13",
+  "opencv-python-headless>=4.13",
+  "pillow>=12.2",
+  "raw-player>=2026.1.0",
+  "sora-sdk==2026.1.0.dev10",
+  "sounddevice>=0.5.5",
+  "webcodecs-py>=2026.2.0",
 ]
 
 [dependency-groups]
-dev = ["pytest", "pytest-timeout", "dotenv"]
+dev = ["dotenv", "pytest", "pytest-timeout"]
 lint = ["ruff", "ty"]
 
 [build-system]
 requires = ["uv_build"]
 build-backend = "uv_build"
 
-[tool.uv]
-package = false
-managed = true
-python-preference = "only-managed"
-default-groups = ["dev", "lint"]
+[tool.pytest.ini_options]
+pythonpath = ["examples"]
+testpaths = ["tests"]
 
 [tool.ruff]
 target-version = "py312"
 line-length = 100
 
-[tool.pytest.ini_options]
-pythonpath = ["examples"]
-testpaths = ["tests"]
+[tool.ty]
+src = { include = ["examples", "tests"] }
+
+[tool.ty.environment]
+python-version = "3.12"
+extra-paths = ["examples"]
+
+[tool.ty.analysis]
+replace-imports-with-any = ["mediapipe.**"]
+
+[tool.uv]
+package = false
+managed = true
+python-preference = "only-managed"
+default-groups = ["dev", "lint"]

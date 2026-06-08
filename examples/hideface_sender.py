@@ -5,14 +5,20 @@ from pathlib import Path
 from threading import Event
 from typing import Any
 
-import cv2  # type: ignore
-import mediapipe as mp  # type: ignore
+import cv2
+import mediapipe as mp
 import numpy as np
-from cv2.typing import MatLike  # type: ignore
+from cv2.typing import MatLike
 from PIL import Image
 from sora_sdk import Sora, SoraSignalingErrorCode, SoraVideoSource
 
-from helpers import EnvPrefixArgumentParser, json_object, resolve_channel_id
+from helpers import (
+    EnvPrefixArgumentParser,
+    as_uint8_frame,
+    json_object,
+    resolve_channel_id,
+    video_writer_fourcc,
+)
 
 
 # 顔検出を行い、検出された顔にロゴを重ねて Sora に送信するクラス
@@ -30,7 +36,7 @@ class LogoStreamer:
         video_fourcc: str | None,
     ):
         # MediaPipe の顔検出モジュール
-        self.mp_face_detection = mp.solutions.face_detection  # type: ignore
+        self.mp_face_detection = mp.solutions.face_detection
 
         # チャンネル ID
         self._channel_id: str = channel_id
@@ -84,7 +90,7 @@ class LogoStreamer:
         if video_height is not None:
             self._video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, video_height)
         if video_fourcc is not None:
-            self._video_capture.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*video_fourcc))
+            self._video_capture.set(cv2.CAP_PROP_FOURCC, video_writer_fourcc(*video_fourcc))
         if video_fps is not None:
             self._video_capture.set(cv2.CAP_PROP_FPS, video_fps)
 
@@ -92,7 +98,7 @@ class LogoStreamer:
         # Windows → FPS を設定すると FOURCC が初期化される
         # ので、両方に対応するため 2 回設定する
         if video_fourcc is not None:
-            fourcc = cv2.VideoWriter_fourcc(*video_fourcc)
+            fourcc = video_writer_fourcc(*video_fourcc)
             target_fourcc = self._video_capture.get(cv2.CAP_PROP_FOURCC)
             if fourcc != target_fourcc:
                 self._video_capture.set(cv2.CAP_PROP_FOURCC, fourcc)
@@ -151,9 +157,9 @@ class LogoStreamer:
 
     def run_one_frame(
         self,
-        face_detection: mp.solutions.face_detection.FaceDetection,  # type: ignore
+        face_detection: mp.solutions.face_detection.FaceDetection,
         angle: int,
-        frame: MatLike,  # type: ignore
+        frame: MatLike,
     ) -> int:
         # 高速化の呪文
         frame.flags.writeable = False
@@ -205,7 +211,7 @@ class LogoStreamer:
         frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
         # WebRTC に渡す
-        self._video_source.on_captured(frame)
+        self._video_source.on_captured(as_uint8_frame(frame))
         return angle
 
 

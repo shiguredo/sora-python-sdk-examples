@@ -7,13 +7,15 @@ from contextlib import nullcontext
 from threading import Event, Lock
 from typing import Any
 
-import cv2  # type: ignore
+import cv2
 import numpy as np
-import sounddevice  # type: ignore
+import sounddevice
 from helpers import (
     EnvPrefixArgumentParser,
+    as_uint8_frame,
     get_video_codec_preference,
     json_object,
+    video_writer_fourcc,
     resolve_channel_id,
 )
 from numpy import ndarray
@@ -227,7 +229,10 @@ class Sendrecv:
                 else:
                     # 他の接続の場合、順序を記録
                     with self._video_frames_lock:
-                        if connection_id not in self._connection_order:
+                        if (
+                            isinstance(connection_id, str)
+                            and connection_id not in self._connection_order
+                        ):
                             self._connection_order.append(connection_id)
                             print(f"New connection detected: connection_id={connection_id}")
 
@@ -457,7 +462,7 @@ class Sendrecv:
                         success, frame = self._video_capture.read()
                         if success:
                             if self._video_source is not None:
-                                self._video_source.on_captured(frame)
+                                self._video_source.on_captured(as_uint8_frame(frame))
 
                             # プレビュー表示
                             if self._show_preview:
@@ -511,7 +516,7 @@ def get_video_capture(
     if video_height is not None:
         video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, video_height)
     if video_fourcc is not None:
-        video_capture.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*video_fourcc))
+        video_capture.set(cv2.CAP_PROP_FOURCC, video_writer_fourcc(*video_fourcc))
     if video_fps is not None:
         video_capture.set(cv2.CAP_PROP_FPS, video_fps)
 
@@ -519,7 +524,7 @@ def get_video_capture(
     # Windows では FPS を設定すると FOURCC が初期化される
     # 両方の OS に対応するため、設定が反映されていなければ再設定する
     if video_fourcc is not None:
-        fourcc = cv2.VideoWriter_fourcc(*video_fourcc)
+        fourcc = video_writer_fourcc(*video_fourcc)
         target_fourcc = video_capture.get(cv2.CAP_PROP_FOURCC)
         if fourcc != target_fourcc:
             video_capture.set(cv2.CAP_PROP_FOURCC, fourcc)

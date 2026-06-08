@@ -1,3 +1,8 @@
 {
-  "recommendations": ["charliermarsh.ruff", "ms-python.mypy-type-checker"]
+  "recommendations": [
+    "ms-python.python",
+    "charliermarsh.ruff",
+    "astral-sh.ty"
+  ],
+  "unwantedRecommendations": ["ms-python.mypy-type-checker"]
 }

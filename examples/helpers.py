@@ -3,9 +3,14 @@ import json
 import os
 import platform
 import sys
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
+
+import cv2
+import numpy as np
+from numpy.typing import NDArray
 
 from sora_sdk import (
     SoraVideoCodecImplementation,
@@ -159,12 +164,23 @@ class EnvPrefixArgumentParser(argparse.ArgumentParser):
 
     # 引数をパースする
     # 環境変数から補完した引数を先頭に、CLI 引数を後に配置することで CLI 側を優先させる
-    def parse_args(self, args: list[str] | None = None, namespace=None):
+    def parse_args(self, args: Iterable[str] | None = None, namespace=None):
         if args is None:
             args = sys.argv[1:]
         env_args = self._build_env_args(list(args))
         # env_args を先頭にして CLI 側を優先させる（後勝ち）
         return super().parse_args(env_args + list(args), namespace=namespace)
+
+
+# OpenCV の FOURCC コードを生成する
+def video_writer_fourcc(*code: str) -> int:
+    writer_fourcc = getattr(cv2, "VideoWriter_fourcc")
+    return int(writer_fourcc(*code))
+
+
+# SoraVideoSource.on_captured に渡す uint8 の映像フレームに変換する
+def as_uint8_frame(frame: np.ndarray) -> NDArray[np.uint8]:
+    return np.asarray(frame, dtype=np.uint8)
 
 
 # argparse のカスタム型として JSON オブジェクトをパースする
